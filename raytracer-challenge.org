@@ -1,0 +1,591 @@
+#+STARTUP: show2levels
+#+TITLE:     The Ray Tracer Challenge Notes
+#+AUTHOR:    Calvin Xu
+#+EMAIL:     calvinxu806@gmail.com
+
+* DONE Tuples, Points, and Vectors
+:PROPERTIES:
+:ACTIVATED: [2022-07-30]
+:END:
+** DONE Tuples
+:PROPERTIES:
+:ACTIVATED: [2022-07-30]
+:END:
+Left-handed coordinate system (+x right, +y up, +z away)
+
+I wonder if I should make points and vectors proper types each, but I'll go with the book for now. Note that Typed Racket currently does not support ~field-option~ in structs meaning we can't set ~w~ to ~#:auto~ to prepopulate values.
+
+#+NAME: tuple-base
+#+BEGIN_SRC racket :noweb yes
+#lang typed/racket
+
+(struct tuple ([x : Real] [y : Real] [z : Real] [w : Real]) #:prefab)
+
+(: pt (-> Real Real Real tuple))
+(define (pt x y z)
+  (tuple x y z 1))
+
+(: pt? (-> tuple Boolean))
+(define (pt? t)
+  (= (tuple-w t) 1))
+
+(: vec (-> Real Real Real tuple))
+(define (vec x y z)
+  (tuple x y z 0))
+
+(: vec? (-> tuple Boolean))
+(define (vec? t)
+  (= (tuple-w t) 0))
+#+END_SRC
+
+#+RESULTS: tuple
+
+#+BEGIN_SRC racket :noweb yes
+<<tuple-base>>
+(require typed/rackunit)
+
+(define a (tuple 4.3 -4.2 3.1 1.0))
+
+(check-equal? (tuple-x a) 4.3)
+(check-equal? (tuple-y a) -4.2)
+(check-equal? (tuple-z a) 3.1)
+(check-equal? (tuple-w a) 1.0)
+(check-true (pt? a))
+(check-false (vec? a))
+
+(define b (tuple 4.3 -4.2 3.1 0.0))
+
+(check-equal? (tuple-x b) 4.3)
+(check-equal? (tuple-y b) -4.2)
+(check-equal? (tuple-z b) 3.1)
+(check-equal? (tuple-w b) 0.0)
+(check-false (pt? b))
+(check-true (vec? b))
+
+(define c (pt 4 -4 3))
+
+(check-equal? c (tuple 4 -4 3 1))
+
+(define d (vec 4 -4 3))
+
+(check-equal? d (tuple 4 -4 3 0))
+#+END_SRC
+
+#+RESULTS:
+
+We can compare floats in ~rackunit~ with [[https://docs.racket-lang.org/rackunit/api.html#(def._((lib._rackunit/main..rkt)._check-~3d))][(check-= v1 v2 epsilon [message])]]:
+
+#+begin_example
+(check-= 1.0 1.01 0.02 "I work")
+(check-= 1.0 1.01 0.005 "I fail")
+#+end_example
+
+In case I need it outside of tests:
+
+#+NAME: f=
+#+BEGIN_SRC racket :noweb yes
+(: f= (-> Real Real Boolean))
+(define (f= a b)
+  (: EPSILON Real)
+  (define EPSILON 0.00001)
+  (< (abs (- a b)) EPSILON))
+#+END_SRC
+
+#+BEGIN_SRC racket :noweb yes
+#lang typed/racket
+<<f=>>
+
+(f= 1 1.000015)
+(f= 1 1.000005)
+#+END_SRC
+
+#+RESULTS:
+: #f
+: #t
+
+We should already be able to compare tuples for equality by making them ~#:prefab~. But then that isn't going to cut it. RackUnit's ~define-check~ seems broken in Typed Racket...I can't get a trivial example to work in the REPL and I can't find anyone's usage online. My own macro it is:
+
+#+NAME: check-tuple=
+#+BEGIN_SRC racket :noweb yes
+(define-syntax-rule (check-tuple= t1 t2)
+  (unless (and (f= (tuple-x t1) (tuple-x t2))
+               (f= (tuple-y t1) (tuple-y t2))
+               (f= (tuple-z t1) (tuple-z t2))
+               (f= (tuple-w t1) (tuple-w t2)))
+    (printf "Failure: tuples not equal ~v, ~v\n" t1 t2)))
+#+END_SRC
+
+** DONE Operations
+:PROPERTIES:
+:ACTIVATED: [2022-07-30]
+:END:
+*** Addition
+#+NAME: tuple+
+#+BEGIN_SRC racket :noweb yes
+(: tuple+ (-> tuple tuple tuple))
+(define (tuple+ t1 t2)
+  (tuple (+ (tuple-x t1) (tuple-x t2))
+         (+ (tuple-y t1) (tuple-y t2))
+         (+ (tuple-z t1) (tuple-z t2))
+         (+ (tuple-w t1) (tuple-w t2))))
+#+END_SRC
+
+#+RESULTS: tuple+
+
+#+BEGIN_SRC racket :noweb yes
+<<tuple-base>>
+<<tuple+>>
+<<f=>>
+<<check-tuple=>>
+(require typed/rackunit)
+
+(check-tuple= (tuple+ (tuple 3 -2 5 1) (tuple -2 3 1 0)) (tuple 1 1 6 1))
+#+END_SRC
+
+#+RESULTS:
+
+Let's make a variadic version:
+
+#+BEGIN_SRC racket :noweb yes
+(: tuples+ (-> tuple * tuple))
+(define (tuples+ . tuples)
+  (let loop ([sum (car tuples)] [args (cdr tuples)])
+    (if (null? args) sum (loop (tuple+ sum (car args)) (cdr args)))))
+#+END_SRC
+
+...SICPish; or maybe try:
+
+#+NAME: tuples+
+#+BEGIN_SRC racket :noweb yes
+(: tuples+ (-> tuple * tuple))
+(define (tuples+ . tuples)
+  (foldl tuple+ (tuple 0 0 0 0) tuples))
+#+END_SRC
+
+#+BEGIN_SRC racket :noweb yes
+<<tuple-base>>
+<<tuple+>>
+<<tuples+>>
+<<f=>>
+<<check-tuple=>>
+(require typed/rackunit)
+
+(check-tuple= (tuples+ (tuple 3 -2 5 1)) (tuple 3 -2 5 1))
+(check-tuple= (tuples+ (tuple 3 -2 5 1) (tuple -2 3 1 0)) (tuple 1 1 6 1))
+(check-tuple= (tuples+ (tuple 3 -2 5 1) (tuple -2 3 1 0) (tuple 1 1 1 1)) (tuple 2 2 7 2))
+#+END_SRC
+
+#+RESULTS:
+
+*** Subtraction
+#+NAME: tuple-
+#+BEGIN_SRC racket :noweb yes
+(: tuple- (-> tuple tuple tuple))
+(define (tuple- t1 t2)
+  (tuple (- (tuple-x t1) (tuple-x t2))
+         (- (tuple-y t1) (tuple-y t2))
+         (- (tuple-z t1) (tuple-z t2))
+         (- (tuple-w t1) (tuple-w t2))))
+#+END_SRC
+
+#+BEGIN_SRC racket :noweb yes
+<<tuple-base>>
+<<tuple->>
+<<f=>>
+<<check-tuple=>>
+(require typed/rackunit)
+
+(check-tuple= (tuple- (pt 3 2 1) (pt 5 6 7)) (vec -2 -4 -6))
+#+END_SRC
+
+#+RESULTS:
+
+#+NAME: tuples-
+#+BEGIN_SRC racket :noweb yes
+(: tuples- (-> tuple * tuple))
+(define (tuples- . tuples)
+  (foldl tuple+ (car tuples) (map -tuple (cdr tuples))))
+#+END_SRC
+
+#+BEGIN_SRC racket :noweb yes
+<<tuple-base>>
+<<tuple+>>
+<<-tuple>>
+<<tuples->>
+<<f=>>
+<<check-tuple=>>
+(require typed/rackunit)
+
+(check-tuple= (tuples- (tuple 3 -2 5 1)) (tuple 3 -2 5 1))
+(check-tuple= (tuples- (tuple 3 -2 5 1) (tuple -2 3 1 0)) (tuple 5 -5 4 1))
+(check-tuple= (tuples- (tuple 3 -2 5 1) (tuple -2 3 1 0) (tuple 1 1 1 1)) (tuple 4 -6 3 0))
+#+END_SRC
+
+#+RESULTS:
+
+*** Negation
+#+NAME: -tuple
+#+BEGIN_SRC racket :noweb yes
+(: -tuple (-> tuple tuple))
+(define (-tuple t)
+  (tuple (- (tuple-x t)) (- (tuple-y t)) (- (tuple-z t)) (- (tuple-w t))))
+#+END_SRC
+
+#+BEGIN_SRC racket :noweb yes
+<<tuple-base>>
+<<tuple->>
+<<-tuple>>
+<<f=>>
+<<check-tuple=>>
+(require typed/rackunit)
+
+(check-tuple= (tuple- (vec 0 0 0) (vec 1 -2 3)) (vec -1 2 -3))
+(check-tuple= (-tuple (tuple 1 -2 3 -4)) (tuple -1 2 -3 4))
+#+END_SRC
+
+#+RESULTS:
+
+*** Scalar Multiplication and Division
+#+NAME: tuple*
+#+BEGIN_SRC racket :noweb yes
+(: tuple* (-> tuple Real tuple))
+(define (tuple* t s)
+  (tuple (* (tuple-x t) s) (* (tuple-y t) s) (* (tuple-z t) s) (* (tuple-w t) s)))
+#+END_SRC
+
+#+BEGIN_SRC racket :noweb yes
+<<tuple-base>>
+<<tuple*>>
+<<f=>>
+<<check-tuple=>>
+(require typed/rackunit)
+
+(define a (tuple 1 -2 3 -4))
+
+(check-tuple= (tuple* a 3.5) (tuple 3.5 -7.0 10.5 -14.0))
+(check-tuple= (tuple* a 0.5) (tuple 0.5 -1.0 1.5 -2.0))
+#+END_SRC
+
+#+RESULTS:
+
+#+NAME: tuple/
+#+BEGIN_SRC racket :noweb yes
+(: tuple/ (-> tuple Real tuple))
+(define (tuple/ t s)
+  (tuple (/ (tuple-x t) s) (/ (tuple-y t) s) (/ (tuple-z t) s) (/ (tuple-w t) s)))
+#+END_SRC
+
+#+BEGIN_SRC racket :noweb yes
+<<tuple-base>>
+<<tuple/>>
+<<f=>>
+<<check-tuple=>>
+(require typed/rackunit)
+
+(check-tuple= (tuple/ (tuple 1.0 -2 3.0 -4) 2) (tuple 0.5 -1 1.5 -2))
+#+END_SRC
+
+#+RESULTS:
+
+*** Magnitude
+#+NAME: mag
+#+BEGIN_SRC racket :noweb yes
+(: mag (-> tuple Real))
+(define (mag v)
+  (if (vec? v)
+      (sqrt (+ (sqr (tuple-x v)) (sqr (tuple-y v)) (sqr (tuple-z v))))
+      (error "Is not a vector:" v)))
+#+END_SRC
+
+#+BEGIN_SRC racket :noweb yes
+<<tuple-base>>
+<<mag>>
+(require typed/rackunit)
+
+(check-= (mag (vec 1 0 0)) 1 0.00001)
+(check-= (mag (vec 0 1 0)) 1 0.00001)
+(check-= (mag (vec 0 0 1)) 1 0.00001)
+(check-= (mag (vec 1 2 3)) (sqrt 14) 0.00001)
+(check-= (mag (vec -1 -2 -3)) (sqrt 14) 0.00001)
+
+;; (vec-mag (pt 1 2 3))
+#+END_SRC
+
+#+RESULTS:
+
+*** Normalization
+
+#+NAME: norm
+#+BEGIN_SRC racket :noweb yes
+(: norm (-> tuple tuple))
+(define (norm v)
+  (if (vec? v)
+      (let ([mag : Real (mag v)])
+        (vec (/ (tuple-x v) mag) (/ (tuple-y v) mag) (/ (tuple-z v) mag)))
+      (error "Is not a vector:" v)))
+#+END_SRC
+
+#+BEGIN_SRC racket :noweb yes
+<<tuple-base>>
+<<mag>>
+<<norm>>
+<<f=>>
+<<check-tuple=>>
+(require typed/rackunit)
+
+(check-tuple= (norm (vec 4 0 0)) (vec 1 0 0))
+
+(check-tuple= (norm (vec 1 2 3)) (vec 0.26726 0.53452 0.80178))
+
+;; (vec-norm (pt 1 2 3))
+#+END_SRC
+
+#+RESULTS:
+
+*** Dot Product
+
+#+NAME: dot*
+#+BEGIN_SRC racket :noweb yes
+(: dot* (-> tuple tuple Real))
+(define (dot* v1 v2)
+  (if (and (vec? v1) (vec? v2))
+      (+ (* (tuple-x v1) (tuple-x v2))
+         (* (tuple-y v1) (tuple-y v2))
+         (* (tuple-z v1) (tuple-z v2))
+         (* (tuple-w v1) (tuple-w v2)))
+      (error "Dot product on non-vector:" v1 v2)))
+#+END_SRC
+
+#+BEGIN_SRC racket :noweb yes
+<<tuple-base>>
+<<dot*>>
+(require typed/rackunit)
+
+(check-= (dot* (vec 1 2 3) (vec 2 3 4)) 20 0.00001)
+
+;; (vec-mag (pt 1 2 3))
+#+END_SRC
+
+#+RESULTS:
+
+*** Cross Product
+
+#+NAME: cross*
+#+BEGIN_SRC racket :noweb yes
+(: cross* (-> tuple tuple tuple))
+(define (cross* v1 v2)
+  (if (and (vec? v1) (vec? v2))
+      (vec (- (* (tuple-y v1) (tuple-z v2)) (* (tuple-z v1) (tuple-y v2)))
+              (- (* (tuple-z v1) (tuple-x v2)) (* (tuple-x v1) (tuple-z v2)))
+              (- (* (tuple-x v1) (tuple-y v2)) (* (tuple-y v1) (tuple-x v2))))
+      (error "Dot product on non-vector:" v1 v2)))
+#+END_SRC
+
+#+BEGIN_SRC racket :noweb yes
+<<tuple-base>>
+<<cross*>>
+<<f=>>
+<<check-tuple=>>
+(require typed/rackunit)
+
+(check-tuple= (cross* (vec 1 2 3) (vec 2 3 4)) (vec -1 2 -1))
+(check-tuple= (cross* (vec 2 3 4) (vec 1 2 3)) (vec 1 -2 1))
+
+;; (vec-norm (pt 1 2 3))
+#+END_SRC
+
+#+RESULTS:
+
+** DONE Putting It Together
+:PROPERTIES:
+:ACTIVATED: [2022-07-31]
+:END:
+
+#+NAME: tuples
+#+BEGIN_SRC racket :noweb yes :tangle tuples.rkt
+<<tuple-base>>
+
+<<f=>>
+
+<<tuple+>>
+
+<<tuples+>>
+
+<<tuple->>
+
+<<tuples->>
+
+<<-tuple>>
+
+<<tuple*>>
+
+<<tuple/>>
+
+<<mag>>
+
+<<norm>>
+
+<<dot*>>
+#+END_SRC
+
+#+BEGIN_SRC racket :noweb yes
+<<tuples>>
+
+(struct projectile ([position : tuple] [velocity : tuple]) #:prefab)
+(struct environment ([gravity : tuple] [wind : tuple]) #:prefab)
+
+(: tick (-> environment projectile projectile))
+(define (tick env proj)
+  (projectile (tuple+ (projectile-position proj) (projectile-velocity proj))
+              (tuples+ (projectile-velocity proj) (environment-gravity env) (environment-wind env))))
+
+(define p (projectile (pt 0 1 0) (norm (vec 1 1 0))))
+(define e (environment (vec 0 -0.1 0) (vec -0.01 0 0)))
+
+(: iter (-> environment projectile Integer Any))
+(define (iter env proj n)
+  (if (or (> n 100) (<= (tuple-y (projectile-position proj)) 0))
+      (print "Hit ground")
+      (begin
+        (printf "Tick #~v\n" n)
+        (printf "Position: ~v\n" (projectile-position proj))
+        (iter e (tick e proj) (+ 1 n)))))
+
+(iter e p 0)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Tick #0
+Position: '#s(tuple 0 1 0 1)
+Tick #1
+Position: '#s(tuple 0.7071067811865475 1.7071067811865475 0 1)
+Tick #2
+Position: '#s(tuple 1.404213562373095 2.314213562373095 0 1)
+Tick #3
+Position: '#s(tuple 2.0913203435596426 2.821320343559642 0 1)
+Tick #4
+Position: '#s(tuple 2.7684271247461902 3.2284271247461898 0 1)
+Tick #5
+Position: '#s(tuple 3.4355339059327377 3.5355339059327373 0 1)
+Tick #6
+Position: '#s(tuple 4.092640687119285 3.7426406871192848 0 1)
+Tick #7
+Position: '#s(tuple 4.739747468305833 3.849747468305832 0 1)
+Tick #8
+Position: '#s(tuple 5.37685424949238 3.85685424949238 0 1)
+Tick #9
+Position: '#s(tuple 6.003961030678928 3.7639610306789275 0 1)
+Tick #10
+Position: '#s(tuple 6.621067811865475 3.571067811865475 0 1)
+Tick #11
+Position: '#s(tuple 7.228174593052023 3.2781745930520225 0 1)
+Tick #12
+Position: '#s(tuple 7.82528137423857 2.88528137423857 0 1)
+Tick #13
+Position: '#s(tuple 8.412388155425118 2.3923881554251176 0 1)
+Tick #14
+Position: '#s(tuple 8.989494936611665 1.7994949366116653 0 1)
+Tick #15
+Position: '#s(tuple 9.556601717798213 1.1066017177982128 0 1)
+Tick #16
+Position: '#s(tuple 10.11370849898476 0.3137084989847604 0 1)
+"Hit ground"
+#+end_example
+
+In the future I'll have one big test suite instead of blocks after everything.
+
+* Drawing on a Canvas
+** Representing Colors
+** Implementing Color Operations
+** Creating a Canvas
+** Saving a Canvas
+** Putting It Together
+* Matrices
+** Creating a Matrix
+** Multiplying Matrices
+** The Identity Matrix
+** Transposing Matrices
+** Inverting Matrices
+** Putting It Together
+* Matrix Transformations
+** Translation
+** Scaling
+** Rotation
+** Shearing
+** Chaining Transformations
+** Putting It Together
+* Ray*Sphere Intersections
+** Creating Rays
+** Intersecting Rays with Spheres
+** Tracking Intersections
+** Identifying Hits
+** Transforming Rays and Spheres
+** Putting It Together
+* Light and Shading
+** Reflecting Vectors
+** The Phong Reflection Model
+** Putting It Together
+* Making a Scene
+** Building a World
+** Defining a View Transformation
+** Implementing a Camera
+** Putting It Together
+* Shadows
+** Testing for Shadows
+** Rendering Shadows
+** Putting It Together
+* Planes
+** Refactoring Shapes
+** Implementing a Plane
+** Putting It Together
+* Patterns
+** Making a Striped Pattern
+** Transforming Patterns
+** Generalizing Patterns
+** Making a Gradient Pattern
+** Making a Ring Pattern
+** Making a 3D Checker Pattern
+** Putting It Together
+* Reflection and Refraction
+** Reflection
+** Transparency and Refraction
+** Fresnel Effect
+** Putting It Together
+* Cubes
+** Intersecting a Ray with a Cube
+** Finding the Normal on a Cube
+** Putting It Together
+* Cylinders
+** Intersecting a Ray with a Cylinder
+** Finding the Normal on a Cylinder
+** Truncating Cylinders
+** Capped Cylinders
+** Cones
+** Putting It Together
+* Groups
+** Implementing Groups
+** Finding the Normal on a Child Object
+** Using Bounding Boxes to Optimize Large Scenes
+** Putting It Together
+* Triangles
+** Triangles
+** Wavefront OBJ Files
+** Smooth Triangles
+** Smooth Triangles in OBJ Files
+** Putting It Together
+* Constructive Solid Geometry (CSG)
+** Implementing CSG
+** Coloring CSG Shapes
+** Putting It Together
+* Next Steps
+** Area Lights and Soft Shadows
+** Spotlights
+** Focal Blur
+** Motion Blur
+** Anti*aliasing
+** Texture Maps
+** Normal Perturbation
+** Torus Primitive
+** Wrapping It Up
+* Rendering the Cover Image
