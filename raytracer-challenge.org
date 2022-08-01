@@ -19,26 +19,24 @@ I wonder if I should make points and vectors proper types each, but I'll go with
 #+BEGIN_SRC racket :noweb yes
 #lang typed/racket
 
-(struct tuple ([x : Real] [y : Real] [z : Real] [w : Real]) #:prefab)
+(struct tuple ([x : Real] [y : Real] [z : Real] [w : Real]) #:prefab #:type-name Tuple)
 
-(: pt (-> Real Real Real tuple))
+(: pt (-> Real Real Real Tuple))
 (define (pt x y z)
   (tuple x y z 1))
 
-(: pt? (-> tuple Boolean))
+(: pt? (-> Tuple Boolean))
 (define (pt? t)
   (= (tuple-w t) 1))
 
-(: vec (-> Real Real Real tuple))
+(: vec (-> Real Real Real Tuple))
 (define (vec x y z)
   (tuple x y z 0))
 
-(: vec? (-> tuple Boolean))
+(: vec? (-> Tuple Boolean))
 (define (vec? t)
   (= (tuple-w t) 0))
 #+END_SRC
-
-#+RESULTS: tuple
 
 #+BEGIN_SRC racket :noweb yes
 <<tuple-base>>
@@ -122,15 +120,13 @@ We should already be able to compare tuples for equality by making them ~#:prefa
 *** Addition
 #+NAME: tuple+
 #+BEGIN_SRC racket :noweb yes
-(: tuple+ (-> tuple tuple tuple))
+(: tuple+ (-> Tuple Tuple Tuple))
 (define (tuple+ t1 t2)
   (tuple (+ (tuple-x t1) (tuple-x t2))
          (+ (tuple-y t1) (tuple-y t2))
          (+ (tuple-z t1) (tuple-z t2))
          (+ (tuple-w t1) (tuple-w t2))))
 #+END_SRC
-
-#+RESULTS: tuple+
 
 #+BEGIN_SRC racket :noweb yes
 <<tuple-base>>
@@ -147,7 +143,7 @@ We should already be able to compare tuples for equality by making them ~#:prefa
 Let's make a variadic version:
 
 #+BEGIN_SRC racket :noweb yes
-(: tuples+ (-> tuple * tuple))
+(: tuples+ (-> Tuple * Tuple))
 (define (tuples+ . tuples)
   (let loop ([sum (car tuples)] [args (cdr tuples)])
     (if (null? args) sum (loop (tuple+ sum (car args)) (cdr args)))))
@@ -157,7 +153,7 @@ Let's make a variadic version:
 
 #+NAME: tuples+
 #+BEGIN_SRC racket :noweb yes
-(: tuples+ (-> tuple * tuple))
+(: tuples+ (-> Tuple * Tuple))
 (define (tuples+ . tuples)
   (foldl tuple+ (tuple 0 0 0 0) tuples))
 #+END_SRC
@@ -180,7 +176,7 @@ Let's make a variadic version:
 *** Subtraction
 #+NAME: tuple-
 #+BEGIN_SRC racket :noweb yes
-(: tuple- (-> tuple tuple tuple))
+(: tuple- (-> Tuple Tuple Tuple))
 (define (tuple- t1 t2)
   (tuple (- (tuple-x t1) (tuple-x t2))
          (- (tuple-y t1) (tuple-y t2))
@@ -202,7 +198,7 @@ Let's make a variadic version:
 
 #+NAME: tuples-
 #+BEGIN_SRC racket :noweb yes
-(: tuples- (-> tuple * tuple))
+(: tuples- (-> Tuple * Tuple))
 (define (tuples- . tuples)
   (foldl tuple+ (car tuples) (map -tuple (cdr tuples))))
 #+END_SRC
@@ -226,7 +222,7 @@ Let's make a variadic version:
 *** Negation
 #+NAME: -tuple
 #+BEGIN_SRC racket :noweb yes
-(: -tuple (-> tuple tuple))
+(: -tuple (-> Tuple Tuple))
 (define (-tuple t)
   (tuple (- (tuple-x t)) (- (tuple-y t)) (- (tuple-z t)) (- (tuple-w t))))
 #+END_SRC
@@ -248,7 +244,7 @@ Let's make a variadic version:
 *** Scalar Multiplication and Division
 #+NAME: tuple*
 #+BEGIN_SRC racket :noweb yes
-(: tuple* (-> tuple Real tuple))
+(: tuple* (-> Tuple Real Tuple))
 (define (tuple* t s)
   (tuple (* (tuple-x t) s) (* (tuple-y t) s) (* (tuple-z t) s) (* (tuple-w t) s)))
 #+END_SRC
@@ -270,7 +266,7 @@ Let's make a variadic version:
 
 #+NAME: tuple/
 #+BEGIN_SRC racket :noweb yes
-(: tuple/ (-> tuple Real tuple))
+(: tuple/ (-> Tuple Real Tuple))
 (define (tuple/ t s)
   (tuple (/ (tuple-x t) s) (/ (tuple-y t) s) (/ (tuple-z t) s) (/ (tuple-w t) s)))
 #+END_SRC
@@ -290,7 +286,7 @@ Let's make a variadic version:
 *** Magnitude
 #+NAME: mag
 #+BEGIN_SRC racket :noweb yes
-(: mag (-> tuple Real))
+(: mag (-> Tuple Real))
 (define (mag v)
   (if (vec? v)
       (sqrt (+ (sqr (tuple-x v)) (sqr (tuple-y v)) (sqr (tuple-z v))))
@@ -317,7 +313,7 @@ Let's make a variadic version:
 
 #+NAME: norm
 #+BEGIN_SRC racket :noweb yes
-(: norm (-> tuple tuple))
+(: norm (-> Tuple Tuple))
 (define (norm v)
   (if (vec? v)
       (let ([mag : Real (mag v)])
@@ -346,7 +342,7 @@ Let's make a variadic version:
 
 #+NAME: dot*
 #+BEGIN_SRC racket :noweb yes
-(: dot* (-> tuple tuple Real))
+(: dot* (-> Tuple Tuple Real))
 (define (dot* v1 v2)
   (if (and (vec? v1) (vec? v2))
       (+ (* (tuple-x v1) (tuple-x v2))
@@ -372,7 +368,7 @@ Let's make a variadic version:
 
 #+NAME: cross*
 #+BEGIN_SRC racket :noweb yes
-(: cross* (-> tuple tuple tuple))
+(: cross* (-> Tuple Tuple Tuple))
 (define (cross* v1 v2)
   (if (and (vec? v1) (vec? v2))
       (vec (- (* (tuple-y v1) (tuple-z v2)) (* (tuple-z v1) (tuple-y v2)))
@@ -426,7 +422,13 @@ Let's make a variadic version:
 <<norm>>
 
 <<dot*>>
+
+<<cross*>>
+
+(provide (all-defined-out))
 #+END_SRC
+
+A fun playground:
 
 #+BEGIN_SRC racket :noweb yes
 <<tuples>>
@@ -494,6 +496,72 @@ Position: '#s(tuple 10.11370849898476 0.3137084989847604 0 1)
 #+end_example
 
 In the future I'll have one big test suite instead of blocks after everything.
+
+#+BEGIN_SRC racket :noweb yes :tangle tests/tuples-test.rkt
+#lang typed/racket
+(require typed/rackunit
+         typed/rackunit/text-ui
+         "../tuples.rkt")
+
+<<check-tuple=>>
+
+(define tuples-test
+(test-suite "Tuples, Points, and Vectors"
+            (test-case "tuple-base"
+                       (define a (tuple 4.3 -4.2 3.1 1.0))
+                       (check-equal? (tuple-x a) 4.3)
+                       (check-equal? (tuple-y a) -4.2)
+                       (check-equal? (tuple-z a) 3.1)
+                       (check-equal? (tuple-w a) 1.0)
+                       (check-true (pt? a))
+                       (check-false (vec? a))
+                       (define b (tuple 4.3 -4.2 3.1 0.0))
+                       (check-equal? (tuple-x b) 4.3)
+                       (check-equal? (tuple-y b) -4.2)
+                       (check-equal? (tuple-z b) 3.1)
+                       (check-equal? (tuple-w b) 0.0)
+                       (check-false (pt? b))
+                       (check-true (vec? b))
+                       (define c (pt 4 -4 3))
+                       (check-equal? c (tuple 4 -4 3 1))
+                       (define d (vec 4 -4 3))
+                       (check-equal? d (tuple 4 -4 3 0)))
+            (test-case "addition"
+                       (check-tuple= (tuple+ (tuple 3 -2 5 1) (tuple -2 3 1 0)) (tuple 1 1 6 1))
+                       (check-tuple= (tuples+ (tuple 3 -2 5 1)) (tuple 3 -2 5 1))
+                       (check-tuple= (tuples+ (tuple 3 -2 5 1) (tuple -2 3 1 0)) (tuple 1 1 6 1))
+                       (check-tuple= (tuples+ (tuple 3 -2 5 1) (tuple -2 3 1 0) (tuple 1 1 1 1))
+                                     (tuple 2 2 7 2)))
+            (test-case "subtraction"
+                       (check-tuple= (tuple- (pt 3 2 1) (pt 5 6 7)) (vec -2 -4 -6))
+                       (check-tuple= (tuples- (tuple 3 -2 5 1)) (tuple 3 -2 5 1))
+                       (check-tuple= (tuples- (tuple 3 -2 5 1) (tuple -2 3 1 0)) (tuple 5 -5 4 1))
+                       (check-tuple= (tuples- (tuple 3 -2 5 1) (tuple -2 3 1 0) (tuple 1 1 1 1))
+                                     (tuple 4 -6 3 0)))
+            (test-case "negation"
+                       (check-tuple= (tuple- (vec 0 0 0) (vec 1 -2 3)) (vec -1 2 -3))
+                       (check-tuple= (-tuple (tuple 1 -2 3 -4)) (tuple -1 2 -3 4)))
+            (test-case "multiplication and division"
+                       (define a (tuple 1 -2 3 -4))
+                       (check-tuple= (tuple* a 3.5) (tuple 3.5 -7.0 10.5 -14.0))
+                       (check-tuple= (tuple* a 0.5) (tuple 0.5 -1.0 1.5 -2.0))
+                       (check-tuple= (tuple/ (tuple 1.0 -2 3.0 -4) 2) (tuple 0.5 -1 1.5 -2)))
+            (test-case "magnitude"
+                       (check-= (mag (vec 1 0 0)) 1 0.00001)
+                       (check-= (mag (vec 0 1 0)) 1 0.00001)
+                       (check-= (mag (vec 0 0 1)) 1 0.00001)
+                       (check-= (mag (vec 1 2 3)) (sqrt 14) 0.00001)
+                       (check-= (mag (vec -1 -2 -3)) (sqrt 14) 0.00001))
+            (test-case "normalization"
+                       (check-tuple= (norm (vec 4 0 0)) (vec 1 0 0))
+                       (check-tuple= (norm (vec 1 2 3)) (vec 0.26726 0.53452 0.80178)))
+            (test-case "dot product" (check-= (dot* (vec 1 2 3) (vec 2 3 4)) 20 0.00001))
+            (test-case "cross product"
+                       (check-tuple= (cross* (vec 1 2 3) (vec 2 3 4)) (vec -1 2 -1))
+                       (check-tuple= (cross* (vec 2 3 4) (vec 1 2 3)) (vec 1 -2 1)))))
+
+(run-tests tuples-test)
+#+END_SRC
 
 * Drawing on a Canvas
 ** Representing Colors
