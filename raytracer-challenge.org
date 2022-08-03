@@ -17,8 +17,6 @@ I wonder if I should make points and vectors proper types each, but I'll go with
 
 #+NAME: tuple-base
 #+BEGIN_SRC racket :noweb yes
-#lang typed/racket
-
 (struct tuple ([x : Real] [y : Real] [z : Real] [w : Real]) #:prefab #:type-name Tuple)
 
 (: pt (-> Real Real Real Tuple))
@@ -39,8 +37,9 @@ I wonder if I should make points and vectors proper types each, but I'll go with
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes
-<<tuple-base>>
+#lang typed/racket
 (require typed/rackunit)
+<<tuple-base>>
 
 (define a (tuple 4.3 -4.2 3.1 1.0))
 
@@ -129,11 +128,12 @@ We should already be able to compare tuples for equality by making them ~#:prefa
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes
+#lang typed/racket
+(require typed/rackunit)
 <<tuple-base>>
 <<tuple+>>
 <<f=>>
 <<check-tuple=>>
-(require typed/rackunit)
 
 (check-tuple= (tuple+ (tuple 3 -2 5 1) (tuple -2 3 1 0)) (tuple 1 1 6 1))
 #+END_SRC
@@ -159,12 +159,13 @@ Let's make a variadic version:
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes
+#lang typed/racket
+(require typed/rackunit)
 <<tuple-base>>
 <<tuple+>>
 <<tuples+>>
 <<f=>>
 <<check-tuple=>>
-(require typed/rackunit)
 
 (check-tuple= (tuples+ (tuple 3 -2 5 1)) (tuple 3 -2 5 1))
 (check-tuple= (tuples+ (tuple 3 -2 5 1) (tuple -2 3 1 0)) (tuple 1 1 6 1))
@@ -185,11 +186,12 @@ Let's make a variadic version:
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes
+#lang typed/racket
+(require typed/rackunit)
 <<tuple-base>>
 <<tuple->>
 <<f=>>
 <<check-tuple=>>
-(require typed/rackunit)
 
 (check-tuple= (tuple- (pt 3 2 1) (pt 5 6 7)) (vec -2 -4 -6))
 #+END_SRC
@@ -204,13 +206,14 @@ Let's make a variadic version:
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes
+#lang typed/racket
+(require typed/rackunit)
 <<tuple-base>>
 <<tuple+>>
 <<-tuple>>
 <<tuples->>
 <<f=>>
 <<check-tuple=>>
-(require typed/rackunit)
 
 (check-tuple= (tuples- (tuple 3 -2 5 1)) (tuple 3 -2 5 1))
 (check-tuple= (tuples- (tuple 3 -2 5 1) (tuple -2 3 1 0)) (tuple 5 -5 4 1))
@@ -228,12 +231,13 @@ Let's make a variadic version:
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes
+#lang typed/racket
+(require typed/rackunit)
 <<tuple-base>>
 <<tuple->>
 <<-tuple>>
 <<f=>>
 <<check-tuple=>>
-(require typed/rackunit)
 
 (check-tuple= (tuple- (vec 0 0 0) (vec 1 -2 3)) (vec -1 2 -3))
 (check-tuple= (-tuple (tuple 1 -2 3 -4)) (tuple -1 2 -3 4))
@@ -250,11 +254,12 @@ Let's make a variadic version:
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes
+#lang typed/racket
+(require typed/rackunit)
 <<tuple-base>>
 <<tuple*>>
 <<f=>>
 <<check-tuple=>>
-(require typed/rackunit)
 
 (define a (tuple 1 -2 3 -4))
 
@@ -272,11 +277,12 @@ Let's make a variadic version:
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes
+#lang typed/racket
+(require typed/rackunit)
 <<tuple-base>>
 <<tuple/>>
 <<f=>>
 <<check-tuple=>>
-(require typed/rackunit)
 
 (check-tuple= (tuple/ (tuple 1.0 -2 3.0 -4) 2) (tuple 0.5 -1 1.5 -2))
 #+END_SRC
@@ -294,9 +300,10 @@ Let's make a variadic version:
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes
+#lang typed/racket
+(require typed/rackunit)
 <<tuple-base>>
 <<mag>>
-(require typed/rackunit)
 
 (check-= (mag (vec 1 0 0)) 1 0.00001)
 (check-= (mag (vec 0 1 0)) 1 0.00001)
@@ -322,12 +329,13 @@ Let's make a variadic version:
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes
+#lang typed/racket
+(require typed/rackunit)
 <<tuple-base>>
 <<mag>>
 <<norm>>
 <<f=>>
 <<check-tuple=>>
-(require typed/rackunit)
 
 (check-tuple= (norm (vec 4 0 0)) (vec 1 0 0))
 
@@ -353,9 +361,10 @@ Let's make a variadic version:
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes
+#lang typed/racket
+(require typed/rackunit)
 <<tuple-base>>
 <<dot*>>
-(require typed/rackunit)
 
 (check-= (dot* (vec 1 2 3) (vec 2 3 4)) 20 0.00001)
 
@@ -378,11 +387,12 @@ Let's make a variadic version:
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes
+#lang typed/racket
+(require typed/rackunit)
 <<tuple-base>>
 <<cross*>>
 <<f=>>
 <<check-tuple=>>
-(require typed/rackunit)
 
 (check-tuple= (cross* (vec 1 2 3) (vec 2 3 4)) (vec -1 2 -1))
 (check-tuple= (cross* (vec 2 3 4) (vec 1 2 3)) (vec 1 -2 1))
@@ -399,6 +409,8 @@ Let's make a variadic version:
 
 #+NAME: tuples
 #+BEGIN_SRC racket :noweb yes :tangle tuples.rkt
+#lang typed/racket
+
 <<tuple-base>>
 
 <<f=>>
@@ -433,8 +445,8 @@ A fun playground:
 #+BEGIN_SRC racket :noweb yes
 <<tuples>>
 
-(struct projectile ([position : tuple] [velocity : tuple]) #:prefab)
-(struct environment ([gravity : tuple] [wind : tuple]) #:prefab)
+(struct projectile ([position : Tuple] [velocity : Tuple]) #:prefab)
+(struct environment ([gravity : Tuple] [wind : Tuple]) #:prefab)
 
 (: tick (-> environment projectile projectile))
 (define (tick env proj)
