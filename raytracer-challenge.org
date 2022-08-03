@@ -418,7 +418,6 @@ Let's make a variadic version:
 :PROPERTIES:
 :ACTIVATED: [2022-07-31]
 :END:
-
 #+NAME: tuples
 #+BEGIN_SRC racket :noweb yes :tangle tuples.rkt
 #lang typed/racket
@@ -591,21 +590,104 @@ In the future I'll have one big test suite instead of blocks after everything.
 :PROPERTIES:
 :ACTIVATED: [2022-08-02]
 :END:
-** TODO Representing Colors
-
+** DONE Representing Colors
 #+NAME: color-base
 #+BEGIN_SRC racket :noweb yes
-(struct color ([r : Real] [g : Real] [b : Real] [a : Real]) #:prefab #:type-name Color)
+(struct _color tuple () #:prefab #:type-name Color)
 
 (: color (-> Real Real Real Color))
 (define (color red green blue)
-  (color red green blue 1))
+  (_color red green blue 1))
+
+(define color? _color?)
+
+(: color-r (-> Color Real))
+(define (color-r color)
+  (tuple-x color))
+
+(: color-g (-> Color Real))
+(define (color-g color)
+  (tuple-y color))
+
+(: color-b (-> Color Real))
+(define (color-b color)
+  (tuple-z color))
 #+END_SRC
 
-** TODO Implementing Color Operations
+** DONE Implementing Color Operations
+
+I'd rather not reuse the tuple implementations...
+#+NAME: color-ops
+#+BEGIN_SRC racket :noweb yes
+(: color-op (-> (-> Real Real * Real) Color Color Color))
+(define (color-op op c1 c2)
+  (color (op (color-r c1) (color-r c2))
+         (op (color-g c1) (color-g c2))
+         (op (color-b c1) (color-b c2))))
+
+(: color+ (-> Color Color Color))
+(define (color+ c1 c2)
+  (color-op + c1 c2))
+
+(: color- (-> Color Color Color))
+(define (color- c1 c2)
+  (color-op - c1 c2))
+
+(: color* (-> Color (U Color Real) Color))
+(define (color* c arg)
+  (color-op * c (if (color? arg) arg (color arg arg arg))))
+#+END_SRC
+
 ** TODO Creating a Canvas
 ** TODO Saving a Canvas
 ** TODO Putting It Together
+
+#+NAME: canvas
+#+BEGIN_SRC racket :noweb yes :tangle canvas.rkt
+#lang typed/racket
+(require "tuples.rkt")
+
+<<color-base>>
+
+<<color-ops>>
+
+(provide (all-defined-out))
+#+END_SRC
+
+#+BEGIN_SRC racket :noweb yes :tangle tests/canvas-test.rkt
+#lang typed/racket
+(require typed/rackunit
+         typed/rackunit/text-ui
+         "../tuples.rkt"
+         "../canvas.rkt")
+
+<<check-tuple=>>
+
+(define canvas-test
+  (test-suite "Drawing on a Canvas"
+              (test-case "define color"
+                         (define c (color -0.5 0.4 1.7))
+                         (check-equal? (color-r c) -0.5)
+                         (check-equal? (color-g c) 0.4)
+                         (check-equal? (color-b c) 1.7))
+              (test-case "add color"
+                         (define c1 (color 0.9 0.6 0.75))
+                         (define c2 (color 0.7 0.1 0.25))
+                         (check-tuple= (color+ c1 c2) (color 1.6 0.7 1.0)))
+              (test-case "subtract color"
+                         (define c1 (color 0.9 0.6 0.75))
+                         (define c2 (color 0.7 0.1 0.25))
+                         (check-tuple= (color- c1 c2) (color 0.2 0.5 0.5)))
+              (test-case "multiply color"
+                         (define c (color 0.2 0.3 0.4))
+                         (check-tuple= (color* c 2) (color 0.4 0.6 0.8))
+                         (define c1 (color 1 0.2 0.4))
+                         (define c2 (color 0.9 1 0.1))
+                         (check-tuple= (color* c1 c2) (color 0.9 0.2 0.04)))))
+
+(run-tests canvas-test)
+#+END_SRC
+
 * Matrices
 ** Creating a Matrix
 ** Multiplying Matrices
