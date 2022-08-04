@@ -255,39 +255,39 @@ A fun playground:
 #+RESULTS:
 #+begin_example
 Tick #0
-Position: '#s(tuple 0 1 0 1)
+Position: '#s((point tuple 4) 0 1 0 1)
 Tick #1
-Position: '#s(tuple 0.7071067811865475 1.7071067811865475 0 1)
+Position: '#s((point tuple 4) 0.7071067811865475 1.7071067811865475 0 1)
 Tick #2
-Position: '#s(tuple 1.404213562373095 2.314213562373095 0 1)
+Position: '#s((point tuple 4) 1.404213562373095 2.314213562373095 0 1)
 Tick #3
-Position: '#s(tuple 2.0913203435596426 2.821320343559642 0 1)
+Position: '#s((point tuple 4) 2.0913203435596426 2.821320343559642 0 1)
 Tick #4
-Position: '#s(tuple 2.7684271247461902 3.2284271247461898 0 1)
+Position: '#s((point tuple 4) 2.7684271247461902 3.2284271247461898 0 1)
 Tick #5
-Position: '#s(tuple 3.4355339059327377 3.5355339059327373 0 1)
+Position: '#s((point tuple 4) 3.4355339059327377 3.5355339059327373 0 1)
 Tick #6
-Position: '#s(tuple 4.092640687119285 3.7426406871192848 0 1)
+Position: '#s((point tuple 4) 4.092640687119285 3.7426406871192848 0 1)
 Tick #7
-Position: '#s(tuple 4.739747468305833 3.849747468305832 0 1)
+Position: '#s((point tuple 4) 4.739747468305833 3.849747468305832 0 1)
 Tick #8
-Position: '#s(tuple 5.37685424949238 3.85685424949238 0 1)
+Position: '#s((point tuple 4) 5.37685424949238 3.85685424949238 0 1)
 Tick #9
-Position: '#s(tuple 6.003961030678928 3.7639610306789275 0 1)
+Position: '#s((point tuple 4) 6.003961030678928 3.7639610306789275 0 1)
 Tick #10
-Position: '#s(tuple 6.621067811865475 3.571067811865475 0 1)
+Position: '#s((point tuple 4) 6.621067811865475 3.571067811865475 0 1)
 Tick #11
-Position: '#s(tuple 7.228174593052023 3.2781745930520225 0 1)
+Position: '#s((point tuple 4) 7.228174593052023 3.2781745930520225 0 1)
 Tick #12
-Position: '#s(tuple 7.82528137423857 2.88528137423857 0 1)
+Position: '#s((point tuple 4) 7.82528137423857 2.88528137423857 0 1)
 Tick #13
-Position: '#s(tuple 8.412388155425118 2.3923881554251176 0 1)
+Position: '#s((point tuple 4) 8.412388155425118 2.3923881554251176 0 1)
 Tick #14
-Position: '#s(tuple 8.989494936611665 1.7994949366116653 0 1)
+Position: '#s((point tuple 4) 8.989494936611665 1.7994949366116653 0 1)
 Tick #15
-Position: '#s(tuple 9.556601717798213 1.1066017177982128 0 1)
+Position: '#s((point tuple 4) 9.556601717798213 1.1066017177982128 0 1)
 Tick #16
-Position: '#s(tuple 10.11370849898476 0.3137084989847604 0 1)
+Position: '#s((point tuple 4) 10.11370849898476 0.3137084989847604 0 1)
 "Hit ground"
 #+end_example
 
@@ -390,7 +390,7 @@ Position: '#s(tuple 10.11370849898476 0.3137084989847604 0 1)
 (run-tests tuples-test)
 #+END_SRC
 
-* NEXT Drawing on a Canvas
+* DONE Drawing on a Canvas
 :PROPERTIES:
 :ACTIVATED: [2022-08-02]
 :END:
@@ -556,7 +556,46 @@ The following is very bad because I couldn't figure out a functional way of doin
 #+RESULTS:
 : "P3\n5 3\n255\n255 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\n0 0 0 0 128 0 0 0 0 0 0 0 0 0 0 0 0 0\n0 0 0 0 0 0 0 0 255\n"
 
-** TODO Putting It Together
+** DONE Putting It Together
+
+#+BEGIN_SRC racket :noweb yes
+<<tuples>>
+<<color-base>>
+<<color-ops>>
+<<canvas-base>>
+<<canvas-save>>
+
+(struct projectile ([position : Tuple] [velocity : Tuple]) #:prefab)
+(struct environment ([gravity : Tuple] [wind : Tuple]) #:prefab)
+
+(: tick (-> environment projectile projectile))
+(define (tick env proj)
+  (projectile (tuple+ (projectile-position proj) (projectile-velocity proj))
+              (tuples+ (projectile-velocity proj) (environment-gravity env) (environment-wind env))))
+
+(define p (projectile (pt 0 1 0) (tuple* (norm (vec 1 1.8 0)) 11.25)))
+(define e (environment (vec 0 -0.1 0) (vec -0.01 0 0)))
+(define c (canvas 900 550))
+
+(: iter (-> environment projectile Canvas Integer Any))
+(define (iter env proj canvas n)
+  (if (or (> n 200) (<= (tuple-y (projectile-position proj)) 0))
+      (begin
+        (print "Hit ground")
+        (save-canvas canvas "test.ppm"))
+      (begin
+        (printf "Tick #~v\n" n)
+        (let ([position (projectile-position proj)]
+              [flip (lambda ([y : Integer]) (- (canvas-height canvas) y))])
+          (printf "Position: ~v\n" position)
+          (set-pixel! canvas
+                      (assert (max 0 (exact-round (tuple-x position))) nonnegative-integer?)
+                      (assert (max 0 (flip (exact-round (tuple-y position)))) nonnegative-integer?)
+                      (color 1 0 0)))
+        (iter e (tick e proj) canvas (+ 1 n)))))
+
+(iter e p c 0)
+#+END_SRC
 
 #+NAME: canvas
 #+BEGIN_SRC racket :noweb yes :tangle canvas.rkt
@@ -642,7 +681,7 @@ The following is very bad because I couldn't figure out a functional way of doin
 ** Shearing
 ** Chaining Transformations
 ** Putting It Together
-* Ray*Sphere Intersections
+* Ray-Sphere Intersections
 ** Creating Rays
 ** Intersecting Rays with Spheres
 ** Tracking Intersections
