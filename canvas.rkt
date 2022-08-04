@@ -79,13 +79,13 @@
 (: pixel-at (-> Canvas Exact-Nonnegative-Integer Exact-Nonnegative-Integer Color))
 (define (pixel-at canvas x y)
   (if (or (>= x (canvas-width canvas)) (>= y (canvas-height canvas)))
-      (error "Illegal operation: attempting to access pixel out of bounds" x y)
+      (error "Illegal operation: access pixel out of bounds" x y)
       (vector-ref (canvas-pixels canvas) (+ (* y (canvas-width canvas)) x))))
 
 (: set-pixel! (-> Canvas Exact-Nonnegative-Integer Exact-Nonnegative-Integer Color Void))
 (define (set-pixel! canvas x y color)
   (if (or (>= x (canvas-width canvas)) (>= y (canvas-height canvas)))
-      (error "Illegal operation: attempting to set pixel out of bounds" x y)
+      (error "Illegal operation: set pixel out of bounds" x y)
       (vector-set! (canvas-pixels canvas) (+ (* y (canvas-width canvas)) x) color)))
 
 (: serialize-canvas (->* (Canvas) (Exact-Nonnegative-Integer) String))

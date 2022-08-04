@@ -37,7 +37,7 @@
           (reverse (cdr (reverse xyzw)))])
 
     (cond
-      [(and (pt? t1) (pt? t2) (error "Illegal operation: attempting point + point" t1 t2))]
+      [(and (pt? t1) (pt? t2) (error "Illegal operation: point + point" t1 t2))]
       [(or (and (pt? t1) (vec? t2)) (and (pt? t2) (vec? t1))) (apply pt xyz)]
       [(and (vec? t1) (vec? t2)) (apply vec xyz)]
       [else (apply tuple xyzw)])))
@@ -57,7 +57,7 @@
           (reverse (cdr (reverse xyzw)))])
 
     (cond
-      [(and (vec? t1) (pt? t2) (error "Illegal operation: attempting vector - point" t1 t2))]
+      [(and (vec? t1) (pt? t2) (error "Illegal operation: vector - point" t1 t2))]
       [(and (pt? t1) (pt? t2)) (apply vec xyz)]
       [(and (vec? t1) (vec? t2)) (apply vec xyz)]
       [(and (pt? t1) (vec? t2)) (apply pt xyz)]
@@ -97,10 +97,8 @@
 
 (: cross* (-> Vector Vector Vector))
 (define (cross* v1 v2)
-  (if (and (vec? v1) (vec? v2))
-      (vec (- (* (tuple-y v1) (tuple-z v2)) (* (tuple-z v1) (tuple-y v2)))
-              (- (* (tuple-z v1) (tuple-x v2)) (* (tuple-x v1) (tuple-z v2)))
-              (- (* (tuple-x v1) (tuple-y v2)) (* (tuple-y v1) (tuple-x v2))))
-      (error "Dot product on non-vector:" v1 v2)))
+  (vec (- (* (tuple-y v1) (tuple-z v2)) (* (tuple-z v1) (tuple-y v2)))
+       (- (* (tuple-z v1) (tuple-x v2)) (* (tuple-x v1) (tuple-z v2)))
+       (- (* (tuple-x v1) (tuple-y v2)) (* (tuple-y v1) (tuple-x v2)))))
 
 (provide (all-defined-out))
