@@ -28,12 +28,19 @@
 
 (: tuple+ (-> Tuple Tuple Tuple))
 (define (tuple+ t1 t2)
-  (if (and (pt? t1) (pt? t2))
-      (error "Illegal operation: attempting point + point" t1 t2)
-  (tuple (+ (tuple-x t1) (tuple-x t2))
-         (+ (tuple-y t1) (tuple-y t2))
-         (+ (tuple-z t1) (tuple-z t2))
-         (+ (tuple-w t1) (tuple-w t2)))))
+  (let* ([xyzw : (List Real Real Real Real)
+          (list (+ (tuple-x t1) (tuple-x t2))
+                (+ (tuple-y t1) (tuple-y t2))
+                (+ (tuple-z t1) (tuple-z t2))
+                (+ (tuple-w t1) (tuple-w t2)))]
+         [xyz : (List Real Real Real)
+          (reverse (cdr (reverse xyzw)))])
+
+    (cond
+      [(and (pt? t1) (pt? t2) (error "Illegal operation: attempting point + point" t1 t2))]
+      [(or (and (pt? t1) (vec? t2)) (and (pt? t2) (vec? t1))) (apply pt xyz)]
+      [(and (vec? t1) (vec? t2)) (apply vec xyz)]
+      [else (apply tuple xyzw)])))
 
 (: tuples+ (-> Tuple * Tuple))
 (define (tuples+ . tuples)
@@ -41,12 +48,20 @@
 
 (: tuple- (-> Tuple Tuple Tuple))
 (define (tuple- t1 t2)
-  (if (and (vec? t1) (pt? t2))
-      (error "Illegal operation: attempting vector - point" t1 t2)
-  (tuple (- (tuple-x t1) (tuple-x t2))
-         (- (tuple-y t1) (tuple-y t2))
-         (- (tuple-z t1) (tuple-z t2))
-         (- (tuple-w t1) (tuple-w t2)))))
+  (let* ([xyzw : (List Real Real Real Real)
+          (list (- (tuple-x t1) (tuple-x t2))
+                (- (tuple-y t1) (tuple-y t2))
+                (- (tuple-z t1) (tuple-z t2))
+                (- (tuple-w t1) (tuple-w t2)))]
+         [xyz : (List Real Real Real)
+          (reverse (cdr (reverse xyzw)))])
+
+    (cond
+      [(and (vec? t1) (pt? t2) (error "Illegal operation: attempting vector - point" t1 t2))]
+      [(and (pt? t1) (pt? t2)) (apply vec xyz)]
+      [(and (vec? t1) (vec? t2)) (apply vec xyz)]
+      [(and (pt? t1) (vec? t2)) (apply pt xyz)]
+      [else (apply tuple xyzw)])))
 
 (: tuples- (-> Tuple * Tuple))
 (define (tuples- . tuples)
