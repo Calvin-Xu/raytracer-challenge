@@ -3,6 +3,12 @@
 #+AUTHOR:    Calvin Xu
 #+EMAIL:     calvinxu806@gmail.com
 
+#+begin_quote
+Admittedly, the explanations do tend toward imperative, procedural, and object-oriented languages, but the concepts and tests themselves are translatable to any environment you wish.
+#+end_quote
+
+My implementation will be in Typed Racket with unit tests in RackUnit. I will not be using OOP features in ~typed/racket/class~ as they are still "experimental".
+
 * DONE Tuples, Points, and Vectors
 :PROPERTIES:
 :ACTIVATED: [2022-07-30]
@@ -631,6 +637,18 @@ In the future I'll have one big test suite instead of blocks after everything.
 (: color-a (-> Color Real))
 (define (color-a color)
   (tuple-w color))
+
+(: color->string (->* (Color) (Exact-Nonnegative-Integer) String))
+(define (color->string color [max_color_val 255])
+  (: scale (-> Real Integer))
+  (define (scale frac)
+    (exact-round (* (max 0 (min 1.0 frac)) max_color_val)))
+  (string-append (number->string (scale (color-r color)))
+                 " "
+                 (number->string (scale (color-g color)))
+                 " "
+                 (number->string (scale (color-b color)))
+                 " "))
 #+END_SRC
 
 ** DONE Implementing Color Operations
@@ -657,8 +675,103 @@ I'd rather not reuse the tuple implementations...
   (color-op * c (if (color? arg) arg (color arg arg arg))))
 #+END_SRC
 
-** TODO Creating a Canvas
-** TODO Saving a Canvas
+** DONE Creating a Canvas
+
+I got very tempted by  ~math/array~, but it might be more educational to build my own:
+
+#+NAME: canvas-base
+#+BEGIN_SRC racket :noweb yes
+(struct _canvas
+  ([width : Exact-Positive-Integer]
+   [height : Exact-Positive-Integer]
+   [pixels : (Mutable-Vectorof Color)]) #:prefab #:type-name Canvas)
+
+(: canvas-width (-> Canvas Exact-Positive-Integer))
+(define (canvas-width canvas)
+  (_canvas-width canvas))
+
+(: canvas-height (-> Canvas Exact-Positive-Integer))
+(define (canvas-height canvas)
+  (_canvas-height canvas))
+
+(: canvas-pixels (-> Canvas (Mutable-Vectorof Color)))
+(define (canvas-pixels canvas)
+  (_canvas-pixels canvas))
+
+(: canvas (-> Exact-Positive-Integer Exact-Positive-Integer Canvas))
+(define (canvas width height)
+  (_canvas width height (make-vector (* width height) (color 0 0 0))))
+
+(: pixel-at (-> Canvas Exact-Nonnegative-Integer Exact-Nonnegative-Integer Color))
+(define (pixel-at canvas x y)
+  (if (or (>= x (canvas-width canvas)) (>= y (canvas-height canvas)))
+      (error "Illegal operation: attempting to access pixel out of bounds" x y)
+      (vector-ref (canvas-pixels canvas) (+ (* y (canvas-width canvas)) x))))
+
+(: set-pixel! (-> Canvas Exact-Nonnegative-Integer Exact-Nonnegative-Integer Color Void))
+(define (set-pixel! canvas x y color)
+  (if (or (>= x (canvas-width canvas)) (>= y (canvas-height canvas)))
+      (error "Illegal operation: attempting to set pixel out of bounds" x y)
+      (vector-set! (canvas-pixels canvas) (+ (* y (canvas-width canvas)) x) color)))
+#+END_SRC
+
+** DONE Saving a Canvas
+
+PPM format specs: http://netpbm.sourceforge.net/doc/ppm.html
+
+The following is very bad because I couldn't figure out a functional way of doing this.
+
+#+NAME: canvas-save
+#+BEGIN_SRC racket :noweb yes
+(: serialize-canvas (-> Canvas String))
+(define (serialize-canvas canvas)
+  (define header
+    (string-append "P3\n"
+                   (number->string (canvas-width canvas))
+                   " "
+                   (number->string (canvas-height canvas))
+                   "\n"
+                   "255\n"))
+  (define bitmap (vector-map color->string (canvas-pixels canvas)))
+  ;; color->string always adds whitespace at end
+  ;; replace appropriate whitespaces with newlines
+  (begin
+    (let ([PIXELS_PER_ROW 6] [n (* (canvas-width canvas) (canvas-height canvas))])
+      (for ([i (in-range n)])
+        (when (or (= (add1 i) n) (= 0 (remainder (add1 i) PIXELS_PER_ROW)))
+          (let ([curr (vector-ref bitmap i)])
+            (vector-set! bitmap
+                         i
+                         (string-append (substring curr 0 (sub1 (string-length curr))) "\n"))))))
+    (string-append header (string-append* (vector->list bitmap)))))
+
+(: save-canvas (-> Canvas String Void))
+(define (save-canvas canvas filename)
+  (let ([out (open-output-file filename #:mode 'text #:exists 'replace)])
+    (display (serialize-canvas canvas) out)
+    (close-output-port out)))
+#+END_SRC
+
+#+BEGIN_SRC racket :noweb yes
+#lang typed/racket
+<<tuple-base>>
+<<color-base>>
+<<color-ops>>
+<<canvas-base>>
+<<canvas-save>>
+
+(define c (canvas 5 3))
+(set-pixel! c 0 0 (color 1.5 0 0))
+(set-pixel! c 2 1 (color 0 0.5 0))
+(set-pixel! c 4 2 (color -0.5 0 1))
+
+(serialize-canvas c)
+(save-canvas c "test.ppm")
+#+END_SRC
+
+#+RESULTS:
+: "P3\n5 3\n255\n255 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\n0 0 0 0 128 0 0 0 0 0 0 0 0 0 0 0 0 0\n0 0 0 0 0 0 0 0 255\n"
+
 ** TODO Putting It Together
 
 #+NAME: canvas
@@ -669,6 +782,10 @@ I'd rather not reuse the tuple implementations...
 <<color-base>>
 
 <<color-ops>>
+
+<<canvas-base>>
+
+<<canvas-save>>
 
 (provide (except-out (all-defined-out) color-op))
 #+END_SRC
@@ -683,26 +800,46 @@ I'd rather not reuse the tuple implementations...
 <<check-tuple=>>
 
 (define canvas-test
-  (test-suite "Drawing on a Canvas"
-              (test-case "define color"
-                         (define c (color -0.5 0.4 1.7))
-                         (check-equal? (color-r c) -0.5)
-                         (check-equal? (color-g c) 0.4)
-                         (check-equal? (color-b c) 1.7))
-              (test-case "add color"
-                         (define c1 (color 0.9 0.6 0.75))
-                         (define c2 (color 0.7 0.1 0.25))
-                         (check-tuple= (color+ c1 c2) (color 1.6 0.7 1.0)))
-              (test-case "subtract color"
-                         (define c1 (color 0.9 0.6 0.75))
-                         (define c2 (color 0.7 0.1 0.25))
-                         (check-tuple= (color- c1 c2) (color 0.2 0.5 0.5)))
-              (test-case "multiply color"
-                         (define c (color 0.2 0.3 0.4))
-                         (check-tuple= (color* c 2) (color 0.4 0.6 0.8))
-                         (define c1 (color 1 0.2 0.4))
-                         (define c2 (color 0.9 1 0.1))
-                         (check-tuple= (color* c1 c2) (color 0.9 0.2 0.04)))))
+  (test-suite
+   "Drawing on a Canvas"
+   (test-case "define color"
+              (define c (color -0.5 0.4 1.7))
+              (check-equal? (color-r c) -0.5)
+              (check-equal? (color-g c) 0.4)
+              (check-equal? (color-b c) 1.7))
+   (test-case "add color"
+              (define c1 (color 0.9 0.6 0.75))
+              (define c2 (color 0.7 0.1 0.25))
+              (check-tuple= (color+ c1 c2) (color 1.6 0.7 1.0)))
+   (test-case "subtract color"
+              (define c1 (color 0.9 0.6 0.75))
+              (define c2 (color 0.7 0.1 0.25))
+              (check-tuple= (color- c1 c2) (color 0.2 0.5 0.5)))
+   (test-case "multiply color"
+              (define c (color 0.2 0.3 0.4))
+              (check-tuple= (color* c 2) (color 0.4 0.6 0.8))
+              (define c1 (color 1 0.2 0.4))
+              (define c2 (color 0.9 1 0.1))
+              (check-tuple= (color* c1 c2) (color 0.9 0.2 0.04)))
+   (test-case "color to string"
+              (define c (color 0.2 0.3 0.4))
+              (check-equal? (color->string c) "51 76 102 "))
+   (test-case "create and access canvas"
+              (define c (canvas 10 20))
+              (check-equal? (canvas-width c) 10)
+              (check-equal? (canvas-height c) 20)
+              (define red (color 1 0 0))
+              (set-pixel! c 2 3 red)
+              (check-equal? (pixel-at c 2 3) red))
+   (test-case
+    "save canvas to ppm file"
+    (define c (canvas 5 3))
+    (set-pixel! c 0 0 (color 1.5 0 0))
+    (set-pixel! c 2 1 (color 0 0.5 0))
+    (set-pixel! c 4 2 (color -0.5 0 1))
+    (check-equal?
+     (serialize-canvas c)
+     "P3\n5 3\n255\n255 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\n0 0 0 0 128 0 0 0 0 0 0 0 0 0 0 0 0 0\n0 0 0 0 0 0 0 0 255\n"))))
 
 (run-tests canvas-test)
 #+END_SRC
