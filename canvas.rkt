@@ -3,9 +3,9 @@
 
 (struct _color tuple () #:prefab #:type-name Color)
 
-(: color (-> Real Real Real Color))
-(define (color red green blue)
-  (_color red green blue 1))
+(: color (->* (Real Real Real) (Real) Color))
+(define (color red green blue [alpha 1])
+  (_color red green blue alpha))
 
 (define color? _color?)
 
@@ -20,6 +20,10 @@
 (: color-b (-> Color Real))
 (define (color-b color)
   (tuple-z color))
+
+(: color-a (-> Color Real))
+(define (color-a color)
+  (tuple-w color))
 
 (: color-op (-> (-> Real Real * Real) Color Color Color))
 (define (color-op op c1 c2)
@@ -39,4 +43,4 @@
 (define (color* c arg)
   (color-op * c (if (color? arg) arg (color arg arg arg))))
 
-(provide (all-defined-out))
+(provide (except-out (all-defined-out) color-op))

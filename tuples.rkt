@@ -4,17 +4,17 @@
 (struct point tuple () #:prefab #:type-name Point)
 (struct vect tuple () #:prefab #:type-name Vector)
 
-(: pt (-> Real Real Real Point))
-(define (pt x y z)
-  (point x y z 1))
+(: pt (->* (Real Real Real) (Real) Point))
+(define (pt x y z [w 1])
+  (point x y z w))
 
 (: pt? (-> Tuple Boolean))
 (define (pt? t)
   (= (tuple-w t) 1))
 
-(: vec (-> Real Real Real Vector))
-(define (vec x y z)
-  (vect x y z 0))
+(: vec (->* (Real Real Real) (Real) Vector))
+(define (vec x y z [w 0])
+  (vect x y z w))
 
 (: vec? (-> Tuple Boolean))
 (define (vec? t)
