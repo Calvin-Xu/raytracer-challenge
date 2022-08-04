@@ -88,16 +88,17 @@
       (error "Illegal operation: attempting to set pixel out of bounds" x y)
       (vector-set! (canvas-pixels canvas) (+ (* y (canvas-width canvas)) x) color)))
 
-(: serialize-canvas (-> Canvas String))
-(define (serialize-canvas canvas)
+(: serialize-canvas (->* (Canvas) (Exact-Nonnegative-Integer) String))
+(define (serialize-canvas canvas [max_color_val 255])
   (define header
     (string-append "P3\n"
                    (number->string (canvas-width canvas))
                    " "
                    (number->string (canvas-height canvas))
                    "\n"
-                   "255\n"))
-  (define bitmap (vector-map color->string (canvas-pixels canvas)))
+                   (number->string max_color_val)
+                   "\n"))
+  (define bitmap (vector-map (lambda ([x : Color]) (color->string x max_color_val)) (canvas-pixels canvas)))
   ;; color->string always adds whitespace at end
   ;; replace appropriate whitespaces with newlines
   (begin
