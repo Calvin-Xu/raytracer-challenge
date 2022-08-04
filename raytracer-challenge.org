@@ -46,42 +46,6 @@ Since the book hints at some runtime checks/tricks in the way it defined points 
   (= (tuple-w t) 0))
 #+END_SRC
 
-#+BEGIN_SRC racket :noweb yes
-#lang typed/racket
-(require typed/rackunit)
-<<tuple-base>>
-<<f=>>
-<<check-tuple=>>
-
-(define a (tuple 4.3 -4.2 3.1 1.0))
-
-(check-equal? (tuple-x a) 4.3)
-(check-equal? (tuple-y a) -4.2)
-(check-equal? (tuple-z a) 3.1)
-(check-equal? (tuple-w a) 1.0)
-(check-true (pt? a))
-(check-false (vec? a))
-
-(define b (tuple 4.3 -4.2 3.1 0.0))
-
-(check-equal? (tuple-x b) 4.3)
-(check-equal? (tuple-y b) -4.2)
-(check-equal? (tuple-z b) 3.1)
-(check-equal? (tuple-w b) 0.0)
-(check-false (pt? b))
-(check-true (vec? b))
-
-(define c (pt 4 -4 3))
-
-(check-tuple= c (tuple 4 -4 3 1))
-
-(define d (vec 4 -4 3))
-
-(check-tuple= d (tuple 4 -4 3 0))
-#+END_SRC
-
-#+RESULTS:
-
 We can compare floats in ~rackunit~ with [[https://docs.racket-lang.org/rackunit/api.html#(def._((lib._rackunit/main..rkt)._check-~3d))][(check-= v1 v2 epsilon [message])]]:
 
 #+begin_example
@@ -99,18 +63,6 @@ In case I need it outside of tests:
   (define EPSILON 0.00001)
   (< (abs (- a b)) EPSILON))
 #+END_SRC
-
-#+BEGIN_SRC racket :noweb yes
-#lang typed/racket
-<<f=>>
-
-(f= 1 1.000015)
-(f= 1 1.000005)
-#+END_SRC
-
-#+RESULTS:
-: #f
-: #t
 
 We should already be able to compare tuples for equality by making them ~#:prefab~. But then that isn't going to cut it. RackUnit's ~define-check~ seems broken in Typed Racket...I can't get a trivial example to work in the REPL and I can't find anyone's usage online. My own macro it is:
 
@@ -154,19 +106,6 @@ We should already be able to compare tuples for equality by making them ~#:prefa
       [else (apply tuple xyzw)])))
 #+END_SRC
 
-#+BEGIN_SRC racket :noweb yes
-#lang typed/racket
-(require typed/rackunit)
-<<tuple-base>>
-<<tuple+>>
-<<f=>>
-<<check-tuple=>>
-
-(check-tuple= (tuple+ (tuple 3 -2 5 1) (tuple -2 3 1 0)) (tuple 1 1 6 1))
-#+END_SRC
-
-#+RESULTS:
-
 Let's make a variadic version:
 
 #+BEGIN_SRC racket :noweb yes
@@ -184,22 +123,6 @@ Let's make a variadic version:
 (define (tuples+ . tuples)
   (foldl tuple+ (tuple 0 0 0 0) tuples))
 #+END_SRC
-
-#+BEGIN_SRC racket :noweb yes
-#lang typed/racket
-(require typed/rackunit)
-<<tuple-base>>
-<<tuple+>>
-<<tuples+>>
-<<f=>>
-<<check-tuple=>>
-
-(check-tuple= (tuples+ (tuple 3 -2 5 1)) (tuple 3 -2 5 1))
-(check-tuple= (tuples+ (tuple 3 -2 5 1) (tuple -2 3 1 0)) (tuple 1 1 6 1))
-(check-tuple= (tuples+ (tuple 3 -2 5 1) (tuple -2 3 1 0) (tuple 1 1 1 0)) (tuple 2 2 7 1))
-#+END_SRC
-
-#+RESULTS:
 
 *** Subtraction
 
@@ -228,42 +151,12 @@ Let's make a variadic version:
       [else (apply tuple xyzw)])))
 #+END_SRC
 
-#+BEGIN_SRC racket :noweb yes
-#lang typed/racket
-(require typed/rackunit)
-<<tuple-base>>
-<<tuple->>
-<<f=>>
-<<check-tuple=>>
-
-(check-tuple= (tuple- (pt 3 2 1) (pt 5 6 7)) (vec -2 -4 -6))
-#+END_SRC
-
-#+RESULTS:
-
 #+NAME: tuples-
 #+BEGIN_SRC racket :noweb yes
 (: tuples- (-> Tuple * Tuple))
 (define (tuples- . tuples)
   (foldl tuple+ (car tuples) (map -tuple (cdr tuples))))
 #+END_SRC
-
-#+BEGIN_SRC racket :noweb yes
-#lang typed/racket
-(require typed/rackunit)
-<<tuple-base>>
-<<tuple+>>
-<<-tuple>>
-<<tuples->>
-<<f=>>
-<<check-tuple=>>
-
-(check-tuple= (tuples- (tuple 3 -2 5 1)) (tuple 3 -2 5 1))
-(check-tuple= (tuples- (tuple 3 -2 5 1) (tuple -2 3 1 0)) (tuple 5 -5 4 1))
-(check-tuple= (tuples- (tuple 3 -2 5 1) (tuple -2 3 1 0) (tuple 1 1 1 1)) (tuple 4 -6 3 0))
-#+END_SRC
-
-#+RESULTS:
 
 *** Negation
 #+NAME: -tuple
@@ -273,21 +166,6 @@ Let's make a variadic version:
   (tuple (- (tuple-x t)) (- (tuple-y t)) (- (tuple-z t)) (- (tuple-w t))))
 #+END_SRC
 
-#+BEGIN_SRC racket :noweb yes
-#lang typed/racket
-(require typed/rackunit)
-<<tuple-base>>
-<<tuple->>
-<<-tuple>>
-<<f=>>
-<<check-tuple=>>
-
-(check-tuple= (tuple- (vec 0 0 0) (vec 1 -2 3)) (vec -1 2 -3))
-(check-tuple= (-tuple (tuple 1 -2 3 -4)) (tuple -1 2 -3 4))
-#+END_SRC
-
-#+RESULTS:
-
 *** Scalar Multiplication and Division
 #+NAME: tuple*
 #+BEGIN_SRC racket :noweb yes
@@ -296,41 +174,12 @@ Let's make a variadic version:
   (tuple (* (tuple-x t) s) (* (tuple-y t) s) (* (tuple-z t) s) (* (tuple-w t) s)))
 #+END_SRC
 
-#+BEGIN_SRC racket :noweb yes
-#lang typed/racket
-(require typed/rackunit)
-<<tuple-base>>
-<<tuple*>>
-<<f=>>
-<<check-tuple=>>
-
-(define a (tuple 1 -2 3 -4))
-
-(check-tuple= (tuple* a 3.5) (tuple 3.5 -7.0 10.5 -14.0))
-(check-tuple= (tuple* a 0.5) (tuple 0.5 -1.0 1.5 -2.0))
-#+END_SRC
-
-#+RESULTS:
-
 #+NAME: tuple/
 #+BEGIN_SRC racket :noweb yes
 (: tuple/ (-> Tuple Real Tuple))
 (define (tuple/ t s)
   (tuple (/ (tuple-x t) s) (/ (tuple-y t) s) (/ (tuple-z t) s) (/ (tuple-w t) s)))
 #+END_SRC
-
-#+BEGIN_SRC racket :noweb yes
-#lang typed/racket
-(require typed/rackunit)
-<<tuple-base>>
-<<tuple/>>
-<<f=>>
-<<check-tuple=>>
-
-(check-tuple= (tuple/ (tuple 1.0 -2 3.0 -4) 2) (tuple 0.5 -1 1.5 -2))
-#+END_SRC
-
-#+RESULTS:
 
 *** Magnitude
 #+NAME: mag
@@ -340,25 +189,7 @@ Let's make a variadic version:
   (sqrt (+ (sqr (tuple-x v)) (sqr (tuple-y v)) (sqr (tuple-z v)))))
 #+END_SRC
 
-#+BEGIN_SRC racket :noweb yes
-#lang typed/racket
-(require typed/rackunit)
-<<tuple-base>>
-<<mag>>
-
-(check-= (mag (vec 1 0 0)) 1 0.00001)
-(check-= (mag (vec 0 1 0)) 1 0.00001)
-(check-= (mag (vec 0 0 1)) 1 0.00001)
-(check-= (mag (vec 1 2 3)) (sqrt 14) 0.00001)
-(check-= (mag (vec -1 -2 -3)) (sqrt 14) 0.00001)
-
-;; (mag (pt 1 2 3))
-#+END_SRC
-
-#+RESULTS:
-
 *** Normalization
-
 #+NAME: norm
 #+BEGIN_SRC racket :noweb yes
 (: norm (-> Vector Vector))
@@ -367,26 +198,7 @@ Let's make a variadic version:
     (vec (/ (tuple-x v) mag) (/ (tuple-y v) mag) (/ (tuple-z v) mag))))
 #+END_SRC
 
-#+BEGIN_SRC racket :noweb yes
-#lang typed/racket
-(require typed/rackunit)
-<<tuple-base>>
-<<mag>>
-<<norm>>
-<<f=>>
-<<check-tuple=>>
-
-(check-tuple= (norm (vec 4 0 0)) (vec 1 0 0))
-
-(check-tuple= (norm (vec 1 2 3)) (vec 0.26726 0.53452 0.80178))
-
-;; (norm (pt 1 2 3))
-#+END_SRC
-
-#+RESULTS:
-
 *** Dot Product
-
 #+NAME: dot*
 #+BEGIN_SRC racket :noweb yes
 (: dot* (-> Vector Vector Real))
@@ -397,19 +209,7 @@ Let's make a variadic version:
      (* (tuple-w v1) (tuple-w v2))))
 #+END_SRC
 
-#+BEGIN_SRC racket :noweb yes
-#lang typed/racket
-(require typed/rackunit)
-<<tuple-base>>
-<<dot*>>
-
-(check-= (dot* (vec 1 2 3) (vec 2 3 4)) 20 0.00001)
-#+END_SRC
-
-#+RESULTS:
-
 *** Cross Product
-
 #+NAME: cross*
 #+BEGIN_SRC racket :noweb yes
 (: cross* (-> Vector Vector Vector))
@@ -419,56 +219,10 @@ Let's make a variadic version:
        (- (* (tuple-x v1) (tuple-y v2)) (* (tuple-y v1) (tuple-x v2)))))
 #+END_SRC
 
-#+BEGIN_SRC racket :noweb yes
-#lang typed/racket
-(require typed/rackunit)
-<<tuple-base>>
-<<cross*>>
-<<f=>>
-<<check-tuple=>>
-
-(check-tuple= (cross* (vec 1 2 3) (vec 2 3 4)) (vec -1 2 -1))
-(check-tuple= (cross* (vec 2 3 4) (vec 1 2 3)) (vec 1 -2 1))
-#+END_SRC
-
-#+RESULTS:
-
 ** DONE Putting It Together
 :PROPERTIES:
 :ACTIVATED: [2022-07-31]
 :END:
-#+NAME: tuples
-#+BEGIN_SRC racket :noweb yes :tangle tuples.rkt
-#lang typed/racket
-
-<<tuple-base>>
-
-<<f=>>
-
-<<tuple+>>
-
-<<tuples+>>
-
-<<tuple->>
-
-<<tuples->>
-
-<<-tuple>>
-
-<<tuple*>>
-
-<<tuple/>>
-
-<<mag>>
-
-<<norm>>
-
-<<dot*>>
-
-<<cross*>>
-
-(provide (all-defined-out))
-#+END_SRC
 
 A fun playground:
 
@@ -537,7 +291,38 @@ Position: '#s(tuple 10.11370849898476 0.3137084989847604 0 1)
 "Hit ground"
 #+end_example
 
-In the future I'll have one big test suite instead of blocks after everything.
+#+NAME: tuples
+#+BEGIN_SRC racket :noweb yes :tangle tuples.rkt
+#lang typed/racket
+
+<<tuple-base>>
+
+<<f=>>
+
+<<tuple+>>
+
+<<tuples+>>
+
+<<tuple->>
+
+<<tuples->>
+
+<<-tuple>>
+
+<<tuple*>>
+
+<<tuple/>>
+
+<<mag>>
+
+<<norm>>
+
+<<dot*>>
+
+<<cross*>>
+
+(provide (all-defined-out))
+#+END_SRC
 
 #+BEGIN_SRC racket :noweb yes :tangle tests/tuples-test.rkt
 #lang typed/racket
