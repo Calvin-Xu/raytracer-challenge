@@ -65,7 +65,10 @@
 
 (: tuples- (-> Tuple * Tuple))
 (define (tuples- . tuples)
-  (foldl tuple+ (car tuples) (map -tuple (cdr tuples))))
+  ;; optimization when the list is known non-empty
+  (if (null? tuples)
+      (error "Illegal operation: no arguments provided")
+      (foldl tuple+ (car tuples) (map -tuple (cdr tuples)))))
 
 (: -tuple (-> Tuple Tuple))
 (define (-tuple t)

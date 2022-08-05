@@ -29,7 +29,7 @@
 (define (color->string color [max_color_val 255])
   (: scale (-> Real Integer))
   (define (scale frac)
-    (exact-round (* (max 0 (min 1.0 frac)) max_color_val)))
+    (exact-round (cast (* (max 0 (min 1.0 frac)) max_color_val) Float)))
   (string-append (number->string (scale (color-r color)))
                  " "
                  (number->string (scale (color-g color)))
