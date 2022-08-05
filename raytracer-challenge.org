@@ -46,7 +46,7 @@ Since the book hints at some runtime checks/tricks in the way it defined points 
   (= (tuple-w t) 0))
 #+END_SRC
 
-We can compare floats in ~rackunit~ with [[https://docs.racket-lang.org/rackunit/api.html#(def._((lib._rackunit/main..rkt)._check-~3d))][(check-= v1 v2 epsilon [message])]]:
+We can compare floats in ~rackunit~ with [[https://docs.racket-lang.org/rackunit/api.html#(def._((lib._rackunit/main..rkt)._check-~3d))][(check-= v1 v2 epsilon)]]:
 
 #+begin_example
 (check-= 1.0 1.01 0.02 "I work")
@@ -749,7 +749,7 @@ The following is very bad because I couldn't figure out a functional way of doin
 ** Spotlights
 ** Focal Blur
 ** Motion Blur
-** Anti*aliasing
+** Anti-aliasing
 ** Texture Maps
 ** Normal Perturbation
 ** Torus Primitive
