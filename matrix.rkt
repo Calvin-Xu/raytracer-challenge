@@ -36,6 +36,18 @@
       (error "Illegal operation: access matrix element out of bounds")
       (vector-ref (vector-ref (mat-elems mat) m) n)))
 
+(: mat-row (-> Matrix Exact-Nonnegative-Integer (Immutable-Vectorof Float)))
+(define (mat-row mat m)
+  (vector-ref (mat-elems mat) m))
+
+(: mat-col (-> Matrix Exact-Nonnegative-Integer (Immutable-Vectorof Float)))
+(define (mat-col mat n)
+  (vector->immutable-vector (cast (for/vector #:length
+                                    (mat-n mat)
+                                    ([row (mat-elems mat)])
+                                    (vector-ref row n))
+                                  (Mutable-Vectorof Float))))
+
 (: mat= (-> Matrix Matrix Boolean))
 (define (mat= m1 m2)
   (: flatten-mat (-> Matrix (Listof Float)))
