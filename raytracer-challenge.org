@@ -669,28 +669,25 @@ The following is very bad because I couldn't figure out a functional way of doin
 :PROPERTIES:
 :ACTIVATED: [2022-08-05]
 :END:
-** TODO Creating a Matrix
+** DONE Creating a Matrix
 I still want to try multidimensional vectors...
 
 #+NAME: matrix-base
 #+BEGIN_SRC racket :noweb yes
 (struct matrix
-        ([m : Exact-Nonnegative-Integer]
-         [n : Exact-Nonnegative-Integer]
-         [elements : (Immutable-Vectorof (Immutable-Vectorof Float))])
+  ([m : Exact-Nonnegative-Integer]
+   [n : Exact-Nonnegative-Integer]
+   [elements : (Immutable-Vectorof (Immutable-Vectorof Float))])
   #:prefab
   #:type-name Matrix)
 
-(: mat
-   (-> Exact-Nonnegative-Integer
-       Exact-Nonnegative-Integer
-       (Immutable-Vectorof (Immutable-Vectorof Float))
-       Matrix))
+(: mat (-> Exact-Nonnegative-Integer
+           Exact-Nonnegative-Integer
+           (Immutable-Vectorof (Immutable-Vectorof Float))
+           Matrix))
 (define (mat m n rows)
-  (define n-eq?
-    (for/fold ([res : Boolean #t]) ([row : (Immutable-Vectorof Float) rows])
-      (and res (= n (vector-length row)))))
-  (if (and (= m (vector-length rows)) n-eq?)
+  (if (and (= m (vector-length rows))
+           (andmap (lambda ([x : Integer]) (= x n)) (vector->list (vector-map vector-length rows))))
       (matrix m n rows)
       (error "Illegal operation: input not m by n 2D immutable vector" rows)))
 
@@ -711,16 +708,23 @@ I still want to try multidimensional vectors...
   (if (or (>= m (mat-m mat)) (>= n (mat-n mat)))
       (error "Illegal operation: access matrix element out of bounds")
       (vector-ref (vector-ref (mat-elems mat) m) n)))
-#+END_SRC
 
-anyways, here's a snippet for flattenning a matrix into 1D list in case I ever need it:
-
-#+NAME: 
-#+BEGIN_SRC racket :noweb yes
-(: flatten-matrix (-> Matrix (Listof Float)))
-(define (flatten-matrix mat)
-  (for/fold ([acc '()] #:result (reverse acc)) ([row mat])
-    (cons (vector->list row) acc)))
+(: mat= (-> Matrix Matrix Boolean))
+(define (mat= m1 m2)
+  (: flatten-mat (-> Matrix (Listof Float)))
+  (define (flatten-mat mat)
+    (cast (flatten (vector->list (vector-map vector->list (mat-elems mat)))) (Listof Float)))
+  (: compare (-> (Listof Float) (Listof Float) Boolean))
+  (define (compare l1 l2)
+    (cond
+      ;; guarantee non-empty lists in 2nd case for optimization
+      ;; lengths are checked equal beforehand
+      [(or (null? l1) (null? l2)) #t]
+      [(f= (car l1) (car l2)) (compare (cdr l1) (cdr l2))]
+      [else #f]))
+  (and (= (mat-m m1) (mat-m m2))
+       (= (mat-n m1) (mat-n m2))
+       (compare (flatten-mat m1) (flatten-mat m2))))
 #+END_SRC
 
 ** TODO Multiplying Matrices
@@ -768,7 +772,13 @@ anyways, here's a snippet for flattenning a matrix into 1D list in case I ever n
     (define m3 (mat 3 3 #[#[-3. 5. 0.] #[1. -2. -7.] #[0. 1. 1.]]))
     (check-equal? (mat-entry m3 0 0) -3.)
     (check-equal? (mat-entry m3 1 1) -2.)
-    (check-equal? (mat-entry m3 2 2) 1.))))
+    (check-equal? (mat-entry m3 2 2) 1.))
+   (test-case "compare matrix"
+              (define a (mat 4 4 #[#[1. 2. 3. 4.] #[5. 6. 7. 8.] #[9. 8. 7. 6.] #[5. 4. 3. 2.]]))
+              (define b (mat 4 4 #[#[1. 2. 3. 4.] #[5. 6. 7. 8.] #[9. 8. 7. 6.] #[5. 4. 3. 2.]]))
+              (check-true (mat= a b))
+              (define c (mat 4 4 #[#[2. 3. 4. 5.] #[6. 7. 8. 9.] #[8. 7. 6. 5.] #[4. 3. 2. 1.]]))
+              (check-false (mat= a c)))))
 
 (run-tests canvas-test)
 #+END_SRC

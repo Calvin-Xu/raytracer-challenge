@@ -32,6 +32,12 @@
     (define m3 (mat 3 3 #[#[-3. 5. 0.] #[1. -2. -7.] #[0. 1. 1.]]))
     (check-equal? (mat-entry m3 0 0) -3.)
     (check-equal? (mat-entry m3 1 1) -2.)
-    (check-equal? (mat-entry m3 2 2) 1.))))
+    (check-equal? (mat-entry m3 2 2) 1.))
+   (test-case "compare matrix"
+              (define a (mat 4 4 #[#[1. 2. 3. 4.] #[5. 6. 7. 8.] #[9. 8. 7. 6.] #[5. 4. 3. 2.]]))
+              (define b (mat 4 4 #[#[1. 2. 3. 4.] #[5. 6. 7. 8.] #[9. 8. 7. 6.] #[5. 4. 3. 2.]]))
+              (check-true (mat= a b))
+              (define c (mat 4 4 #[#[2. 3. 4. 5.] #[6. 7. 8. 9.] #[8. 7. 6. 5.] #[4. 3. 2. 1.]]))
+              (check-false (mat= a c)))))
 
 (run-tests canvas-test)

@@ -2,22 +2,19 @@
 (require "tuples.rkt")
 
 (struct matrix
-        ([m : Exact-Nonnegative-Integer]
-         [n : Exact-Nonnegative-Integer]
-         [elements : (Immutable-Vectorof (Immutable-Vectorof Float))])
+  ([m : Exact-Nonnegative-Integer]
+   [n : Exact-Nonnegative-Integer]
+   [elements : (Immutable-Vectorof (Immutable-Vectorof Float))])
   #:prefab
   #:type-name Matrix)
 
-(: mat
-   (-> Exact-Nonnegative-Integer
-       Exact-Nonnegative-Integer
-       (Immutable-Vectorof (Immutable-Vectorof Float))
-       Matrix))
+(: mat (-> Exact-Nonnegative-Integer
+           Exact-Nonnegative-Integer
+           (Immutable-Vectorof (Immutable-Vectorof Float))
+           Matrix))
 (define (mat m n rows)
-  (define n-eq?
-    (for/fold ([res : Boolean #t]) ([row : (Immutable-Vectorof Float) rows])
-      (and res (= n (vector-length row)))))
-  (if (and (= m (vector-length rows)) n-eq?)
+  (if (and (= m (vector-length rows))
+           (andmap (lambda ([x : Integer]) (= x n)) (vector->list (vector-map vector-length rows))))
       (matrix m n rows)
       (error "Illegal operation: input not m by n 2D immutable vector" rows)))
 
@@ -38,5 +35,22 @@
   (if (or (>= m (mat-m mat)) (>= n (mat-n mat)))
       (error "Illegal operation: access matrix element out of bounds")
       (vector-ref (vector-ref (mat-elems mat) m) n)))
+
+(: mat= (-> Matrix Matrix Boolean))
+(define (mat= m1 m2)
+  (: flatten-mat (-> Matrix (Listof Float)))
+  (define (flatten-mat mat)
+    (cast (flatten (vector->list (vector-map vector->list (mat-elems mat)))) (Listof Float)))
+  (: compare (-> (Listof Float) (Listof Float) Boolean))
+  (define (compare l1 l2)
+    (cond
+      ;; guarantee non-empty lists in 2nd case for optimization
+      ;; lengths are checked equal beforehand
+      [(or (null? l1) (null? l2)) #t]
+      [(f= (car l1) (car l2)) (compare (cdr l1) (cdr l2))]
+      [else #f]))
+  (and (= (mat-m m1) (mat-m m2))
+       (= (mat-n m1) (mat-n m2))
+       (compare (flatten-mat m1) (flatten-mat m2))))
 
 (provide (all-defined-out))
