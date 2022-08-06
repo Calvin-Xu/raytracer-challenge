@@ -4,18 +4,18 @@
 (struct matrix
         ([m : Exact-Nonnegative-Integer]
          [n : Exact-Nonnegative-Integer]
-         [elements : (Immutable-Vectorof (Immutable-Vectorof Real))])
+         [elements : (Immutable-Vectorof (Immutable-Vectorof Float))])
   #:prefab
   #:type-name Matrix)
 
 (: mat
    (-> Exact-Nonnegative-Integer
        Exact-Nonnegative-Integer
-       (Immutable-Vectorof (Immutable-Vectorof Real))
+       (Immutable-Vectorof (Immutable-Vectorof Float))
        Matrix))
 (define (mat m n rows)
   (define n-eq?
-    (for/fold ([res : Boolean #t]) ([row : (Immutable-Vectorof Real) rows])
+    (for/fold ([res : Boolean #t]) ([row : (Immutable-Vectorof Float) rows])
       (and res (= n (vector-length row)))))
   (if (and (= m (vector-length rows)) n-eq?)
       (matrix m n rows)
@@ -29,11 +29,11 @@
 (define (mat-n mat)
   (matrix-n mat))
 
-(: mat-elems (-> Matrix (Immutable-Vectorof (Immutable-Vectorof Real))))
+(: mat-elems (-> Matrix (Immutable-Vectorof (Immutable-Vectorof Float))))
 (define (mat-elems mat)
   (matrix-elements mat))
 
-(: mat-entry (-> Matrix Exact-Nonnegative-Integer Exact-Nonnegative-Integer Real))
+(: mat-entry (-> Matrix Exact-Nonnegative-Integer Exact-Nonnegative-Integer Float))
 (define (mat-entry mat m n)
   (if (or (>= m (mat-m mat)) (>= n (mat-n mat)))
       (error "Illegal operation: access matrix element out of bounds")

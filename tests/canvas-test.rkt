@@ -29,9 +29,9 @@
               (check-color= (color- c1 c2) (color 0.2 0.5 0.5)))
    (test-case "multiply color"
               (define c (color 0.2 0.3 0.4))
-              (check-color= (color* c 2) (color 0.4 0.6 0.8))
-              (define c1 (color 1 0.2 0.4))
-              (define c2 (color 0.9 1 0.1))
+              (check-color= (color* c 2.) (color 0.4 0.6 0.8))
+              (define c1 (color 1. 0.2 0.4))
+              (define c2 (color 0.9 1. 0.1))
               (check-color= (color* c1 c2) (color 0.9 0.2 0.04)))
    (test-case "color to string"
               (define c (color 0.2 0.3 0.4))
@@ -40,15 +40,15 @@
               (define c (canvas 10 20))
               (check-equal? (canvas-width c) 10)
               (check-equal? (canvas-height c) 20)
-              (define red (color 1 0 0))
+              (define red (color 1. 0. 0.))
               (set-pixel! c 2 3 red)
               (check-equal? (pixel-at c 2 3) red))
    (test-case
     "save canvas to ppm file"
     (define c (canvas 5 3))
-    (set-pixel! c 0 0 (color 1.5 0 0))
-    (set-pixel! c 2 1 (color 0 0.5 0))
-    (set-pixel! c 4 2 (color -0.5 0 1))
+    (set-pixel! c 0 0 (color 1.5 0. 0.))
+    (set-pixel! c 2 1 (color 0. 0.5 0.))
+    (set-pixel! c 4 2 (color -0.5 0. 1.))
     (check-equal?
      (serialize-canvas c)
      "P3\n5 3\n255\n255 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\n0 0 0 0 128 0 0 0 0 0 0 0 0 0 0 0 0 0\n0 0 0 0 0 0 0 0 255\n"))))
