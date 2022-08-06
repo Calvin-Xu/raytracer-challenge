@@ -709,14 +709,14 @@ It might be a good idea to use ~FlVector~, but I still want to try multidimensio
 (define (mat-col mat n)
   (vector->immutable-vector (cast (for/vector #:length
                                     (mat-m mat)
-                                    ([row mat])
+                                    ([row (in-vector mat)])
                                     (vector-ref row n))
                                   (Mutable-Vectorof Float))))
 
 (: mat= (-> Matrix Matrix Boolean))
 (define (mat= m1 m2)
-  (for/and: : Boolean ([row1 m1] [row2 m2])
-    (for/and: : Boolean ([col1 row1] [col2 row2])
+  (for/and: : Boolean ([row1 (in-vector m1)] [row2 (in-vector m2)])
+    (for/and: : Boolean ([col1 (in-vector row1)] [col2 (in-vector row2)])
       (f= col1 col2))))
 #+END_SRC
 
