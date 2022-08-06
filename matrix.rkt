@@ -34,11 +34,11 @@
 
 (: mat-col (-> Matrix Exact-Nonnegative-Integer (Immutable-Vectorof Float)))
 (define (mat-col mat n)
-  (vector->immutable-vector (cast (for/vector #:length
-                                    (mat-m mat)
-                                    ([row (in-vector mat)])
-                                    (vector-ref row n))
-                                  (Mutable-Vectorof Float))))
+  (vector->immutable-vector (for/vector: :
+                                         (Mutable-Vectorof Float)
+                                         #:length (mat-m mat)
+                                         ([row (in-vector mat)])
+                                         (vector-ref row n))))
 
 (: mat= (-> Matrix Matrix Boolean))
 (define (mat= m1 m2)
