@@ -733,10 +733,11 @@ A snippet to flatten a matrix into a 1D list if I ever need it.
 #+BEGIN_SRC racket :noweb yes
 (: mat* (-> Matrix Matrix Matrix))
 (define (mat* mat1 mat2)
-  (: crossn* (-> (Immutable-Vectorof Float) (Immutable-Vectorof Float) Float))
-  (define (crossn* v1 v2)
+  (: cross* (-> (Immutable-Vectorof Float) (Immutable-Vectorof Float) Float))
+  (define (cross* v1 v2)
     (for/fold ([sum 0.]) ([x (in-vector v1)] [y (in-vector v2)])
       (+ sum (* x y))))
+  
   (let ([m1 : Integer (mat-m mat1)]
         [n1 : Integer (mat-n mat1)]
         [m2 : Integer (mat-m mat2)]
@@ -748,7 +749,7 @@ A snippet to flatten a matrix into a 1D list if I ever need it.
                          (vector->immutable-vector
                           (build-vector n2
                                         (lambda ([col : Exact-Nonnegative-Integer])
-                                          (crossn* (mat-row mat1 row) (mat-col mat2 col))))))))
+                                          (cross* (mat-row mat1 row) (mat-col mat2 col))))))))
         (error "Illegal operation: multiply matrices with incompatible sizes" mat1 mat2))))
 
 (: mat-tuple* (-> Matrix Tuple Tuple))
