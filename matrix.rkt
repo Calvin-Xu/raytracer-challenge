@@ -46,7 +46,7 @@
 (: mat-col (-> Matrix Exact-Nonnegative-Integer (Immutable-Vectorof Float)))
 (define (mat-col mat n)
   (vector->immutable-vector (cast (for/vector #:length
-                                    (mat-n mat)
+                                    (mat-m mat)
                                     ([row mat])
                                     (vector-ref row n))
                                   (Mutable-Vectorof Float))))
