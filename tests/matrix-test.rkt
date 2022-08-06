@@ -60,6 +60,16 @@
               (define a (mat 4 4 #[#[1. 2. 3. 4.] #[2. 4. 4. 2.] #[8. 6. 4. 1.] #[0. 0. 0. 1.]]))
               (define b (tuple 1. 2. 3. 1.))
               (check-tuple= (mat-tuple* a b) (tuple 18. 24. 33. 1.)))
-   ))
+   (test-case "multiply identity matrix"
+              (define a (mat 4 4 #[#[0. 1. 2. 4.] #[1. 2. 4. 8.] #[2. 4. 8. 16.] #[4. 8. 16. 32.]]))
+              (check-true (mat= (mat* a id-mat-4) a))
+              (define b (tuple 1. 2. 3. 4.))
+              (check-tuple= (mat-tuple* id-mat-4 b) b))
+   (test-case "transpose matrices"
+     (define a (mat 4 4 #[#[0. 9. 3. 0.] #[9. 8. 0. 8.] #[1. 8. 5. 3.] #[0. 0. 5. 8.]]))
+     (define b (mat 4 4 #[#[0. 9. 1. 0.] #[9. 8. 8. 0.] #[3. 0. 5. 5.] #[0. 8. 3. 8.]]))
+     (check-true (mat= (mat-T a) b))
+     (check-true (mat= (mat-T b) a))
+     (check-true (mat= (mat-T id-mat-4) id-mat-4)))))
 
 (run-tests canvas-test)

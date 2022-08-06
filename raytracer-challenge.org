@@ -773,8 +773,25 @@ A snippet to flatten a matrix into a 1D list if I ever need it.
   (matrix->tuple (mat* mat1 (tuple->matrix arg))))
 #+END_SRC
 
-** TODO The Identity Matrix
-** TODO Transposing Matrices
+** DONE The Identity Matrix
+The book says we only need the 4*4 identity matrix for the raytracer, so I'll not write a function that generates them.
+
+#+NAME: id-mat-4
+#+BEGIN_SRC racket :noweb yes
+(: id-mat-4 Matrix)
+(define id-mat-4
+  (mat 4 4 #[#[1. 0. 0. 0.] #[0. 1. 0. 0.] #[0. 0. 1. 0.] #[0. 0. 0. 1.]]))
+#+END_SRC
+
+** DONE Transposing Matrices
+#+NAME: mat-T
+#+BEGIN_SRC racket :noweb yes
+(: mat-T (-> Matrix Matrix))
+(define (mat-T mat)
+  ((inst vector->immutable-vector (Immutable-Vectorof Float))
+   (build-vector (mat-n mat) (lambda ([y : Exact-Nonnegative-Integer]) (mat-col mat y)))))
+#+END_SRC
+
 ** TODO Inverting Matrices
 ** TODO Putting It Together
 #+NAME: matrix
@@ -785,6 +802,10 @@ A snippet to flatten a matrix into a 1D list if I ever need it.
 <<matrix-base>>
 
 <<mat*>>
+
+<<id-mat-4>>
+
+<<mat-T>>
 
 (provide (all-defined-out))
 #+END_SRC
@@ -847,7 +868,17 @@ A snippet to flatten a matrix into a 1D list if I ever need it.
               (define a (mat 4 4 #[#[1. 2. 3. 4.] #[2. 4. 4. 2.] #[8. 6. 4. 1.] #[0. 0. 0. 1.]]))
               (define b (tuple 1. 2. 3. 1.))
               (check-tuple= (mat-tuple* a b) (tuple 18. 24. 33. 1.)))
-   ))
+   (test-case "multiply identity matrix"
+              (define a (mat 4 4 #[#[0. 1. 2. 4.] #[1. 2. 4. 8.] #[2. 4. 8. 16.] #[4. 8. 16. 32.]]))
+              (check-true (mat= (mat* a id-mat-4) a))
+              (define b (tuple 1. 2. 3. 4.))
+              (check-tuple= (mat-tuple* id-mat-4 b) b))
+   (test-case "transpose matrices"
+     (define a (mat 4 4 #[#[0. 9. 3. 0.] #[9. 8. 0. 8.] #[1. 8. 5. 3.] #[0. 0. 5. 8.]]))
+     (define b (mat 4 4 #[#[0. 9. 1. 0.] #[9. 8. 8. 0.] #[3. 0. 5. 5.] #[0. 8. 3. 8.]]))
+     (check-true (mat= (mat-T a) b))
+     (check-true (mat= (mat-T b) a))
+     (check-true (mat= (mat-T id-mat-4) id-mat-4)))))
 
 (run-tests canvas-test)
 #+END_SRC
