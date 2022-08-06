@@ -400,29 +400,7 @@ Position: '#s((point tuple 4) 10.11370849898476 0.3137084989847604 0 1)
 ** DONE Representing Colors
 #+NAME: color-base
 #+BEGIN_SRC racket :noweb yes
-(struct _color tuple () #:prefab #:type-name Color)
-
-(: color (->* (Real Real Real) (Real) Color))
-(define (color red green blue [alpha 1])
-  (_color red green blue alpha))
-
-(define color? _color?)
-
-(: color-r (-> Color Real))
-(define (color-r color)
-  (tuple-x color))
-
-(: color-g (-> Color Real))
-(define (color-g color)
-  (tuple-y color))
-
-(: color-b (-> Color Real))
-(define (color-b color)
-  (tuple-z color))
-
-(: color-a (-> Color Real))
-(define (color-a color)
-  (tuple-w color))
+(struct color ([r : Real] [g : Real] [b : Real]) #:prefab #:type-name Color)
 
 (: color->string (->* (Color) (Exact-Nonnegative-Integer) String))
 (define (color->string color [max_color_val 255])
@@ -435,6 +413,15 @@ Position: '#s((point tuple 4) 10.11370849898476 0.3137084989847604 0 1)
                  " "
                  (number->string (scale (color-b color)))
                  " "))
+#+END_SRC
+
+#+NAME: check-color=
+#+BEGIN_SRC racket :noweb yes
+(define-syntax-rule (check-color= c1 c2)
+  (unless (and (f= (color-r c1) (color-r c2))
+               (f= (color-g c1) (color-g c2))
+               (f= (color-b c1) (color-b c2)))
+    (printf "Failure: colors not equal ~v, ~v\n" c1 c2)))
 #+END_SRC
 
 ** DONE Implementing Color Operations
@@ -607,6 +594,8 @@ The following is very bad because I couldn't figure out a functional way of doin
 
 <<color-base>>
 
+<<check-color=>>
+
 <<color-ops>>
 
 <<canvas-base>>
@@ -636,17 +625,17 @@ The following is very bad because I couldn't figure out a functional way of doin
    (test-case "add color"
               (define c1 (color 0.9 0.6 0.75))
               (define c2 (color 0.7 0.1 0.25))
-              (check-tuple= (color+ c1 c2) (color 1.6 0.7 1.0)))
+              (check-color= (color+ c1 c2) (color 1.6 0.7 1.0)))
    (test-case "subtract color"
               (define c1 (color 0.9 0.6 0.75))
               (define c2 (color 0.7 0.1 0.25))
-              (check-tuple= (color- c1 c2) (color 0.2 0.5 0.5)))
+              (check-color= (color- c1 c2) (color 0.2 0.5 0.5)))
    (test-case "multiply color"
               (define c (color 0.2 0.3 0.4))
-              (check-tuple= (color* c 2) (color 0.4 0.6 0.8))
+              (check-color= (color* c 2) (color 0.4 0.6 0.8))
               (define c1 (color 1 0.2 0.4))
               (define c2 (color 0.9 1 0.1))
-              (check-tuple= (color* c1 c2) (color 0.9 0.2 0.04)))
+              (check-color= (color* c1 c2) (color 0.9 0.2 0.04)))
    (test-case "color to string"
               (define c (color 0.2 0.3 0.4))
               (check-equal? (color->string c) "51 76 102 "))

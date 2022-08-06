@@ -1,29 +1,7 @@
 #lang typed/racket
 (require "tuples.rkt")
 
-(struct _color tuple () #:prefab #:type-name Color)
-
-(: color (->* (Real Real Real) (Real) Color))
-(define (color red green blue [alpha 1])
-  (_color red green blue alpha))
-
-(define color? _color?)
-
-(: color-r (-> Color Real))
-(define (color-r color)
-  (tuple-x color))
-
-(: color-g (-> Color Real))
-(define (color-g color)
-  (tuple-y color))
-
-(: color-b (-> Color Real))
-(define (color-b color)
-  (tuple-z color))
-
-(: color-a (-> Color Real))
-(define (color-a color)
-  (tuple-w color))
+(struct color ([r : Real] [g : Real] [b : Real]) #:prefab #:type-name Color)
 
 (: color->string (->* (Color) (Exact-Nonnegative-Integer) String))
 (define (color->string color [max_color_val 255])
@@ -36,6 +14,12 @@
                  " "
                  (number->string (scale (color-b color)))
                  " "))
+
+(define-syntax-rule (check-color= c1 c2)
+  (unless (and (f= (color-r c1) (color-r c2))
+               (f= (color-g c1) (color-g c2))
+               (f= (color-b c1) (color-b c2)))
+    (printf "Failure: colors not equal ~v, ~v\n" c1 c2)))
 
 (: color-op (-> (-> Real Real * Real) Color Color Color))
 (define (color-op op c1 c2)
