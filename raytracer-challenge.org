@@ -674,50 +674,42 @@ It might be a good idea to use ~FlVector~, but I still want to try multidimensio
 
 #+NAME: matrix-base
 #+BEGIN_SRC racket :noweb yes
-(struct matrix
-  ([m : Exact-Nonnegative-Integer]
-   [n : Exact-Nonnegative-Integer]
-   [elements : (Immutable-Vectorof (Immutable-Vectorof Float))])
-  #:prefab
-  #:type-name Matrix)
+(define-type Matrix (Immutable-Vectorof (Immutable-Vectorof Float)))
 
-(: mat (-> Exact-Nonnegative-Integer
-           Exact-Nonnegative-Integer
-           (Immutable-Vectorof (Immutable-Vectorof Float))
-           Matrix))
+(: mat
+   (-> Exact-Nonnegative-Integer
+       Exact-Nonnegative-Integer
+       (Immutable-Vectorof (Immutable-Vectorof Float))
+       Matrix))
 (define (mat m n rows)
   (if (and (= m (vector-length rows))
            (andmap (lambda ([x : Integer]) (= x n)) (vector->list (vector-map vector-length rows))))
-      (matrix m n rows)
+      rows
       (error "Illegal operation: input not m by n 2D immutable vector" rows)))
 
 (: mat-m (-> Matrix Exact-Nonnegative-Integer))
 (define (mat-m mat)
-  (matrix-m mat))
+  (vector-length mat))
 
 (: mat-n (-> Matrix Exact-Nonnegative-Integer))
 (define (mat-n mat)
-  (matrix-n mat))
-
-(: mat-elems (-> Matrix (Immutable-Vectorof (Immutable-Vectorof Float))))
-(define (mat-elems mat)
-  (matrix-elements mat))
+  (vector-length (vector-ref mat 0)))
 
 (: mat-entry (-> Matrix Exact-Nonnegative-Integer Exact-Nonnegative-Integer Float))
 (define (mat-entry mat m n)
   (if (or (>= m (mat-m mat)) (>= n (mat-n mat)))
       (error "Illegal operation: access matrix element out of bounds")
-      (vector-ref (vector-ref (mat-elems mat) m) n)))
+      (vector-ref (vector-ref mat m) n)))
 
 (: mat-row (-> Matrix Exact-Nonnegative-Integer (Immutable-Vectorof Float)))
 (define (mat-row mat m)
-  (vector-ref (mat-elems mat) m))
+  (vector-ref mat m))
 
 (: mat-col (-> Matrix Exact-Nonnegative-Integer (Immutable-Vectorof Float)))
 (define (mat-col mat n)
   (vector->immutable-vector (cast (for/vector #:length
                                     (mat-n mat)
-                                    ([row (mat-elems mat)])
+                                    ([row mat])
                                     (vector-ref row n))
                                   (Mutable-Vectorof Float))))
 
@@ -725,7 +717,7 @@ It might be a good idea to use ~FlVector~, but I still want to try multidimensio
 (define (mat= m1 m2)
   (: flatten-mat (-> Matrix (Listof Float)))
   (define (flatten-mat mat)
-    (cast (flatten (vector->list (vector-map vector->list (mat-elems mat)))) (Listof Float)))
+    (cast (flatten (vector->list (vector-map vector->list mat))) (Listof Float)))
   (: compare (-> (Listof Float) (Listof Float) Boolean))
   (define (compare l1 l2)
     (cond
@@ -769,6 +761,8 @@ It might be a good idea to use ~FlVector~, but I still want to try multidimensio
    (test-case
     "define matrix"
     (define m (mat 4 4 #[#[1. 2. 3. 4.] #[5.5 6.5 7.5 8.5] #[9. 10. 11. 12.] #[13.5 14.5 15.5 16.5]]))
+    (check-equal? (mat-m m) 4)
+    (check-equal? (mat-n m) 4)
     (check-equal? (mat-entry m 0 0) 1.)
     (check-equal? (mat-entry m 0 3) 4.)
     (check-equal? (mat-entry m 1 0) 5.5)
@@ -777,11 +771,15 @@ It might be a good idea to use ~FlVector~, but I still want to try multidimensio
     (check-equal? (mat-entry m 3 0) 13.5)
     (check-equal? (mat-entry m 3 2) 15.5)
     (define m2 (mat 2 2 #[#[-3. 5.] #[1. -2.]]))
+    (check-equal? (mat-m m2) 2)
+    (check-equal? (mat-n m2) 2)
     (check-equal? (mat-entry m2 0 0) -3.)
     (check-equal? (mat-entry m2 0 1) 5.)
     (check-equal? (mat-entry m2 1 0) 1.)
     (check-equal? (mat-entry m2 1 1) -2.)
     (define m3 (mat 3 3 #[#[-3. 5. 0.] #[1. -2. -7.] #[0. 1. 1.]]))
+    (check-equal? (mat-m m3) 3)
+    (check-equal? (mat-n m3) 3)
     (check-equal? (mat-entry m3 0 0) -3.)
     (check-equal? (mat-entry m3 1 1) -2.)
     (check-equal? (mat-entry m3 2 2) 1.))

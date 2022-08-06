@@ -1,50 +1,53 @@
 #lang typed/racket
 (require "tuples.rkt")
 
-(struct matrix
-  ([m : Exact-Nonnegative-Integer]
-   [n : Exact-Nonnegative-Integer]
-   [elements : (Immutable-Vectorof (Immutable-Vectorof Float))])
-  #:prefab
-  #:type-name Matrix)
+(define-type Matrix (Immutable-Vectorof (Immutable-Vectorof Float)))
 
-(: mat (-> Exact-Nonnegative-Integer
-           Exact-Nonnegative-Integer
-           (Immutable-Vectorof (Immutable-Vectorof Float))
-           Matrix))
+;; (struct matrix
+;;   ([m : Exact-Nonnegative-Integer]
+;;    [n : Exact-Nonnegative-Integer]
+;;    [elements : (Immutable-Vectorof (Immutable-Vectorof Float))])
+;;   #:prefab
+;;   #:type-name Matrix)
+
+(: mat
+   (-> Exact-Nonnegative-Integer
+       Exact-Nonnegative-Integer
+       (Immutable-Vectorof (Immutable-Vectorof Float))
+       Matrix))
 (define (mat m n rows)
   (if (and (= m (vector-length rows))
            (andmap (lambda ([x : Integer]) (= x n)) (vector->list (vector-map vector-length rows))))
-      (matrix m n rows)
+      rows
       (error "Illegal operation: input not m by n 2D immutable vector" rows)))
 
 (: mat-m (-> Matrix Exact-Nonnegative-Integer))
 (define (mat-m mat)
-  (matrix-m mat))
+  (vector-length mat))
 
 (: mat-n (-> Matrix Exact-Nonnegative-Integer))
 (define (mat-n mat)
-  (matrix-n mat))
+  (vector-length (vector-ref mat 0)))
 
-(: mat-elems (-> Matrix (Immutable-Vectorof (Immutable-Vectorof Float))))
-(define (mat-elems mat)
-  (matrix-elements mat))
+;; (: mat-elems (-> Matrix (Immutable-Vectorof (Immutable-Vectorof Float))))
+;; (define (mat-elems mat)
+;;   (matrix-elements mat))
 
 (: mat-entry (-> Matrix Exact-Nonnegative-Integer Exact-Nonnegative-Integer Float))
 (define (mat-entry mat m n)
   (if (or (>= m (mat-m mat)) (>= n (mat-n mat)))
       (error "Illegal operation: access matrix element out of bounds")
-      (vector-ref (vector-ref (mat-elems mat) m) n)))
+      (vector-ref (vector-ref mat m) n)))
 
 (: mat-row (-> Matrix Exact-Nonnegative-Integer (Immutable-Vectorof Float)))
 (define (mat-row mat m)
-  (vector-ref (mat-elems mat) m))
+  (vector-ref mat m))
 
 (: mat-col (-> Matrix Exact-Nonnegative-Integer (Immutable-Vectorof Float)))
 (define (mat-col mat n)
   (vector->immutable-vector (cast (for/vector #:length
                                     (mat-n mat)
-                                    ([row (mat-elems mat)])
+                                    ([row mat])
                                     (vector-ref row n))
                                   (Mutable-Vectorof Float))))
 
@@ -52,7 +55,7 @@
 (define (mat= m1 m2)
   (: flatten-mat (-> Matrix (Listof Float)))
   (define (flatten-mat mat)
-    (cast (flatten (vector->list (vector-map vector->list (mat-elems mat)))) (Listof Float)))
+    (cast (flatten (vector->list (vector-map vector->list mat))) (Listof Float)))
   (: compare (-> (Listof Float) (Listof Float) Boolean))
   (define (compare l1 l2)
     (cond
