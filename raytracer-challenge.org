@@ -819,7 +819,7 @@ The book says we only need the 4*4 identity matrix for the raytracer, so I'll no
 
 <<check-tuple=>>
 
-(define canvas-test
+(define matrix-test
   (test-suite
    "Matrices"
    (test-case
@@ -880,7 +880,7 @@ The book says we only need the 4*4 identity matrix for the raytracer, so I'll no
      (check-true (mat= (mat-T b) a))
      (check-true (mat= (mat-T id-mat-4) id-mat-4)))))
 
-(run-tests canvas-test)
+(run-tests matrix-test)
 #+END_SRC
 
 * Matrix Transformations

@@ -11,7 +11,7 @@
                (f= (tuple-w t1) (tuple-w t2)))
     (printf "Failure: tuples not equal ~v, ~v\n" t1 t2)))
 
-(define canvas-test
+(define matrix-test
   (test-suite
    "Matrices"
    (test-case
@@ -72,4 +72,4 @@
      (check-true (mat= (mat-T b) a))
      (check-true (mat= (mat-T id-mat-4) id-mat-4)))))
 
-(run-tests canvas-test)
+(run-tests matrix-test)
