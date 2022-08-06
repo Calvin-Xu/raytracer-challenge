@@ -7,15 +7,14 @@
 Admittedly, the explanations do tend toward imperative, procedural, and object-oriented languages, but the concepts and tests themselves are translatable to any environment you wish.
 #+end_quote
 
-My implementation will be in Typed Racket with unit tests in RackUnit. I will not be using OOP features in ~typed/racket/class~ as they are still "experimental".
+My implementation will be in Typed Racket with unit tests in RackUnit. I will not be using OOP features in ~typed/racket/class~ as they are still "experimental". Usage of libraries will be minimal. Low-hanging optimization gains are done, but otherwise this is a learning project.
 
 * DONE Tuples, Points, and Vectors
 :PROPERTIES:
 :ACTIVATED: [2022-07-30]
 :END:
-
 ** /Refactor notes/
-Originally all the numbers had ~Real~ type; I changed it all to ~Float~ after going into Optimization Coach in Dr. Racket and saw all the red areas screaming at me. However, this brings about a really irratating problem. Say you have a function that accepts a float, but you don't want to type the parameter with a decimal point all the time (i.e., ~3~ instead of ~3.~ or ~3.0~). Is there any way you can do that? Not any I could find! perhaps some macros could work, but I don't want to go that far. As far as I can tell, when you feed a integer like ~3~ into the Typed Racket interpreter, there's no way of telling it you actually want it to be a higher type or promoting in any way. If you try to cast, it thinks you are trying to cast an ~Integer~ to ~Float~...
+Originally all the numbers had ~Real~ type; I changed them all to ~Float~ after going into Optimization Coach in Dr. Racket and saw all the red areas screaming at me. However, this brings about a really irratating problem. Say you have a function that accepts a float, but you don't want to type the parameter with a decimal point all the time (i.e., ~3~ instead of ~3.~ or ~3.0~). Is there any way you can do that? Not any I could find! perhaps some macros could work, but I don't want to go that far. As far as I can tell, when you feed a integer like ~3~ into the Typed Racket interpreter, there's no way of telling it you actually want it to be a higher type or promoting in any way. If you try to cast, it thinks you are trying to cast an ~Integer~ to ~Float~...
 
 In all the documentation I saw, people just type out the decimal point. So I guess I'll do that.
 
@@ -89,7 +88,6 @@ We should already be able to compare tuples for equality by making them ~#:prefa
 :ACTIVATED: [2022-07-30]
 :END:
 *** Addition
-
 - point + point -> ?
 - point + vector -> point
 - vector + point -> point
@@ -133,7 +131,6 @@ Let's make a variadic version:
 #+END_SRC
 
 *** Subtraction
-
 - point - point -> vector
 - point - vector -> point
 - vector - point -> ?
@@ -234,7 +231,6 @@ Let's make a variadic version:
 :PROPERTIES:
 :ACTIVATED: [2022-07-31]
 :END:
-
 A fun playground:
 
 #+BEGIN_SRC racket :noweb yes
@@ -439,7 +435,6 @@ Position: '#s((point tuple 4) 10.11370849898476 0.3137084989847604 0.0 1.0)
 #+END_SRC
 
 ** DONE Implementing Color Operations
-
 I'd rather not reuse the tuple implementations...
 #+NAME: color-ops
 #+BEGIN_SRC racket :noweb yes
@@ -463,7 +458,6 @@ I'd rather not reuse the tuple implementations...
 #+END_SRC
 
 ** DONE Creating a Canvas
-
 I got very tempted by  ~math/array~, but it might be more educational to build my own:
 
 #+NAME: canvas-base
@@ -503,7 +497,6 @@ I got very tempted by  ~math/array~, but it might be more educational to build m
 #+END_SRC
 
 ** DONE Saving a Canvas
-
 PPM format specs: http://netpbm.sourceforge.net/doc/ppm.html
 
 The following is very bad because I couldn't figure out a functional way of doing this.
@@ -561,7 +554,6 @@ The following is very bad because I couldn't figure out a functional way of doin
 : "P3\n5 3\n255\n255 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\n0 0 0 0 128 0 0 0 0 0 0 0 0 0 0 0 0 0\n0 0 0 0 0 0 0 0 255\n"
 
 ** DONE Putting It Together
-
 #+BEGIN_SRC racket :noweb yes
 <<tuples>>
 <<color-base>>
@@ -678,7 +670,6 @@ The following is very bad because I couldn't figure out a functional way of doin
 :ACTIVATED: [2022-08-05]
 :END:
 ** TODO Creating a Matrix
-
 I still want to try multidimensional vectors...
 
 #+NAME: matrix-base
@@ -737,7 +728,6 @@ anyways, here's a snippet for flattenning a matrix into 1D list in case I ever n
 ** TODO Transposing Matrices
 ** TODO Inverting Matrices
 ** TODO Putting It Together
-
 #+NAME: matrix
 #+BEGIN_SRC racket :noweb yes :tangle matrix.rkt
 #lang typed/racket
