@@ -68,15 +68,13 @@
         [m2 : Integer (mat-m mat2)]
         [n2 : Integer (mat-n mat2)])
     (if (= n1 m2)
-        (cast
-         (vector->immutable-vector
-          (build-vector m1
-                        (lambda ([row : Exact-Nonnegative-Integer])
-                          (vector->immutable-vector
-                           (build-vector n2
-                                         (lambda ([col : Exact-Nonnegative-Integer])
-                                           (crossn* (mat-row mat1 row) (mat-col mat2 col))))))))
-         Matrix)
+        ((inst vector->immutable-vector (Immutable-Vectorof Float))
+         (build-vector m1
+                       (lambda ([row : Exact-Nonnegative-Integer])
+                         (vector->immutable-vector
+                          (build-vector n2
+                                        (lambda ([col : Exact-Nonnegative-Integer])
+                                          (crossn* (mat-row mat1 row) (mat-col mat2 col))))))))
         (error "Illegal operation: multiply matrices with incompatible sizes" mat1 mat2))))
 
 (: mat-tuple* (-> Matrix Tuple Tuple))
@@ -84,14 +82,12 @@
   (: tuple->matrix (-> Tuple Matrix))
   (define (tuple->matrix t)
     (let ([rows : (Listof Float) (list (tuple-x t) (tuple-y t) (tuple-z t) (tuple-w t))])
-      (cast
-       (vector->immutable-vector
+       ((inst vector->immutable-vector (Immutable-Vectorof Float))
         (build-vector 4
                       (lambda ([i : Integer])
                         (vector->immutable-vector
                          (build-vector (ann 1 Integer)
-                                       (lambda (j) ((inst list-ref Float) rows i)))))))
-       Matrix)))
+                                       (lambda (j) ((inst list-ref Float) rows i)))))))))
 
   (: matrix->tuple (-> Matrix Tuple))
   (define (matrix->tuple m)
