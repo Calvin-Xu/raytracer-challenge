@@ -49,17 +49,17 @@
               (define a (mat 4 4 #[#[1. 2. 3. 4.] #[5. 6. 7. 8.] #[9. 8. 7. 6.] #[5. 4. 3. 2.]]))
               (check-equal? (mat-row a 2) #[9. 8. 7. 6.])
               (check-equal? (mat-col a 1) #[2. 6. 8. 4.]))
-   ;; (test-case
-   ;;  "multiply matrices"
-   ;;  (define a (mat 4 4 #[#[1. 2. 3. 4.] #[5. 6. 7. 8.] #[9. 8. 7. 6.] #[5. 4. 3. 2.]]))
-   ;;  (define b (mat 4 4 #[#[-2. 1. 2. 3.] #[3. 2. 1. -1.] #[4. 3. 6. 5.] #[1. 2. 7. 8.]]))
-   ;;  (define c
-   ;;    (mat 4 4 #[#[20. 22. 50. 48.] #[44. 54. 114. 108.] #[40. 58. 110. 102.] #[16. 26. 46. 42.]]))
-   ;;  (check-true (mat= (mat* a b) c)))
-   ;; (test-case "multiply matrix by vector (tuple)"
-   ;;            (define a (mat 4 4 #[#[1. 2. 3. 4.] #[2. 4. 4. 2.] #[8. 6. 4. 1.] #[0. 0. 0. 1.]]))
-   ;;            (define b (tuple 1. 2. 3. 1.))
-   ;;            (check-tuple= (mat* a b) (tuple 18. 24. 33. 1.)))
+   (test-case
+    "multiply matrices"
+    (define a (mat 4 4 #[#[1. 2. 3. 4.] #[5. 6. 7. 8.] #[9. 8. 7. 6.] #[5. 4. 3. 2.]]))
+    (define b (mat 4 4 #[#[-2. 1. 2. 3.] #[3. 2. 1. -1.] #[4. 3. 6. 5.] #[1. 2. 7. 8.]]))
+    (define c
+      (mat 4 4 #[#[20. 22. 50. 48.] #[44. 54. 114. 108.] #[40. 58. 110. 102.] #[16. 26. 46. 42.]]))
+    (check-true (mat= (mat* a b) c)))
+   (test-case "multiply matrix by vector (tuple)"
+              (define a (mat 4 4 #[#[1. 2. 3. 4.] #[2. 4. 4. 2.] #[8. 6. 4. 1.] #[0. 0. 0. 1.]]))
+              (define b (tuple 1. 2. 3. 1.))
+              (check-tuple= (mat-tuple* a b) (tuple 18. 24. 33. 1.)))
    ))
 
 (run-tests canvas-test)

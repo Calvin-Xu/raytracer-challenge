@@ -731,7 +731,56 @@ It might be a good idea to use ~FlVector~, but I still want to try multidimensio
        (compare (flatten-mat m1) (flatten-mat m2))))
 #+END_SRC
 
-** TODO Multiplying Matrices
+** DONE Multiplying Matrices
+
+#+NAME: mat*
+#+BEGIN_SRC racket :noweb yes
+(: mat* (-> Matrix Matrix Matrix))
+(define (mat* mat1 mat2)
+  (: crossn* (-> (Immutable-Vectorof Float) (Immutable-Vectorof Float) Float))
+  (define (crossn* v1 v2)
+    (for/fold ([sum 0.]) ([x (in-vector v1)] [y (in-vector v2)])
+      (+ sum (* x y))))
+  (let ([m1 : Integer (mat-m mat1)]
+        [n1 : Integer (mat-n mat1)]
+        [m2 : Integer (mat-m mat2)]
+        [n2 : Integer (mat-n mat2)])
+    (if (= n1 m2)
+        (cast
+         (vector->immutable-vector
+          (build-vector m1
+                        (lambda ([row : Exact-Nonnegative-Integer])
+                          (vector->immutable-vector
+                           (build-vector n2
+                                         (lambda ([col : Exact-Nonnegative-Integer])
+                                           (crossn* (mat-row mat1 row) (mat-col mat2 col))))))))
+         Matrix)
+        (error "Illegal operation: multiply matrices with incompatible sizes" mat1 mat2))))
+
+(: mat-tuple* (-> Matrix Tuple Tuple))
+(define (mat-tuple* mat1 arg)
+  (: tuple->matrix (-> Tuple Matrix))
+  (define (tuple->matrix t)
+    (let ([rows : (Listof Float) (list (tuple-x t) (tuple-y t) (tuple-z t) (tuple-w t))])
+      (cast
+       (vector->immutable-vector
+        (build-vector 4
+                      (lambda ([i : Integer])
+                        (vector->immutable-vector
+                         (build-vector (ann 1 Integer)
+                                       (lambda (j) ((inst list-ref Float) rows i)))))))
+       Matrix)))
+
+  (: matrix->tuple (-> Matrix Tuple))
+  (define (matrix->tuple m)
+    (tuple (vector-ref (vector-ref m 0) 0)
+           (vector-ref (vector-ref m 1) 0)
+           (vector-ref (vector-ref m 2) 0)
+           (vector-ref (vector-ref m 3) 0)))
+  (matrix->tuple (mat* mat1 (tuple->matrix arg))))
+#+END_SRC
+
+
 ** TODO The Identity Matrix
 ** TODO Transposing Matrices
 ** TODO Inverting Matrices
@@ -742,6 +791,8 @@ It might be a good idea to use ~FlVector~, but I still want to try multidimensio
 (require "tuples.rkt")
 
 <<matrix-base>>
+
+<<mat*>>
 
 (provide (all-defined-out))
 #+END_SRC
@@ -793,17 +844,17 @@ It might be a good idea to use ~FlVector~, but I still want to try multidimensio
               (define a (mat 4 4 #[#[1. 2. 3. 4.] #[5. 6. 7. 8.] #[9. 8. 7. 6.] #[5. 4. 3. 2.]]))
               (check-equal? (mat-row a 2) #[9. 8. 7. 6.])
               (check-equal? (mat-col a 1) #[2. 6. 8. 4.]))
-   ;; (test-case
-   ;;  "multiply matrices"
-   ;;  (define a (mat 4 4 #[#[1. 2. 3. 4.] #[5. 6. 7. 8.] #[9. 8. 7. 6.] #[5. 4. 3. 2.]]))
-   ;;  (define b (mat 4 4 #[#[-2. 1. 2. 3.] #[3. 2. 1. -1.] #[4. 3. 6. 5.] #[1. 2. 7. 8.]]))
-   ;;  (define c
-   ;;    (mat 4 4 #[#[20. 22. 50. 48.] #[44. 54. 114. 108.] #[40. 58. 110. 102.] #[16. 26. 46. 42.]]))
-   ;;  (check-true (mat= (mat* a b) c)))
-   ;; (test-case "multiply matrix by vector (tuple)"
-   ;;            (define a (mat 4 4 #[#[1. 2. 3. 4.] #[2. 4. 4. 2.] #[8. 6. 4. 1.] #[0. 0. 0. 1.]]))
-   ;;            (define b (tuple 1. 2. 3. 1.))
-   ;;            (check-tuple= (mat* a b) (tuple 18. 24. 33. 1.)))
+   (test-case
+    "multiply matrices"
+    (define a (mat 4 4 #[#[1. 2. 3. 4.] #[5. 6. 7. 8.] #[9. 8. 7. 6.] #[5. 4. 3. 2.]]))
+    (define b (mat 4 4 #[#[-2. 1. 2. 3.] #[3. 2. 1. -1.] #[4. 3. 6. 5.] #[1. 2. 7. 8.]]))
+    (define c
+      (mat 4 4 #[#[20. 22. 50. 48.] #[44. 54. 114. 108.] #[40. 58. 110. 102.] #[16. 26. 46. 42.]]))
+    (check-true (mat= (mat* a b) c)))
+   (test-case "multiply matrix by vector (tuple)"
+              (define a (mat 4 4 #[#[1. 2. 3. 4.] #[2. 4. 4. 2.] #[8. 6. 4. 1.] #[0. 0. 0. 1.]]))
+              (define b (tuple 1. 2. 3. 1.))
+              (check-tuple= (mat-tuple* a b) (tuple 18. 24. 33. 1.)))
    ))
 
 (run-tests canvas-test)

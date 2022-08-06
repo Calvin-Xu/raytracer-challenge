@@ -3,13 +3,6 @@
 
 (define-type Matrix (Immutable-Vectorof (Immutable-Vectorof Float)))
 
-;; (struct matrix
-;;   ([m : Exact-Nonnegative-Integer]
-;;    [n : Exact-Nonnegative-Integer]
-;;    [elements : (Immutable-Vectorof (Immutable-Vectorof Float))])
-;;   #:prefab
-;;   #:type-name Matrix)
-
 (: mat
    (-> Exact-Nonnegative-Integer
        Exact-Nonnegative-Integer
@@ -28,10 +21,6 @@
 (: mat-n (-> Matrix Exact-Nonnegative-Integer))
 (define (mat-n mat)
   (vector-length (vector-ref mat 0)))
-
-;; (: mat-elems (-> Matrix (Immutable-Vectorof (Immutable-Vectorof Float))))
-;; (define (mat-elems mat)
-;;   (matrix-elements mat))
 
 (: mat-entry (-> Matrix Exact-Nonnegative-Integer Exact-Nonnegative-Integer Float))
 (define (mat-entry mat m n)
@@ -67,5 +56,49 @@
   (and (= (mat-m m1) (mat-m m2))
        (= (mat-n m1) (mat-n m2))
        (compare (flatten-mat m1) (flatten-mat m2))))
+
+(: mat* (-> Matrix Matrix Matrix))
+(define (mat* mat1 mat2)
+  (: crossn* (-> (Immutable-Vectorof Float) (Immutable-Vectorof Float) Float))
+  (define (crossn* v1 v2)
+    (for/fold ([sum 0.]) ([x (in-vector v1)] [y (in-vector v2)])
+      (+ sum (* x y))))
+  (let ([m1 : Integer (mat-m mat1)]
+        [n1 : Integer (mat-n mat1)]
+        [m2 : Integer (mat-m mat2)]
+        [n2 : Integer (mat-n mat2)])
+    (if (= n1 m2)
+        (cast
+         (vector->immutable-vector
+          (build-vector m1
+                        (lambda ([row : Exact-Nonnegative-Integer])
+                          (vector->immutable-vector
+                           (build-vector n2
+                                         (lambda ([col : Exact-Nonnegative-Integer])
+                                           (crossn* (mat-row mat1 row) (mat-col mat2 col))))))))
+         Matrix)
+        (error "Illegal operation: multiply matrices with incompatible sizes" mat1 mat2))))
+
+(: mat-tuple* (-> Matrix Tuple Tuple))
+(define (mat-tuple* mat1 arg)
+  (: tuple->matrix (-> Tuple Matrix))
+  (define (tuple->matrix t)
+    (let ([rows : (Listof Float) (list (tuple-x t) (tuple-y t) (tuple-z t) (tuple-w t))])
+      (cast
+       (vector->immutable-vector
+        (build-vector 4
+                      (lambda ([i : Integer])
+                        (vector->immutable-vector
+                         (build-vector (ann 1 Integer)
+                                       (lambda (j) ((inst list-ref Float) rows i)))))))
+       Matrix)))
+
+  (: matrix->tuple (-> Matrix Tuple))
+  (define (matrix->tuple m)
+    (tuple (vector-ref (vector-ref m 0) 0)
+           (vector-ref (vector-ref m 1) 0)
+           (vector-ref (vector-ref m 2) 0)
+           (vector-ref (vector-ref m 3) 0)))
+  (matrix->tuple (mat* mat1 (tuple->matrix arg))))
 
 (provide (all-defined-out))
