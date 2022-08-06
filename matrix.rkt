@@ -96,4 +96,8 @@
   ((inst vector->immutable-vector (Immutable-Vectorof Float))
    (build-vector (mat-n mat) (lambda ([y : Exact-Nonnegative-Integer]) (mat-col mat y)))))
 
+(: det-2 (-> Matrix Float))
+(define (det-2 mat)
+  (- (* (mat-entry mat 0 0) (mat-entry mat 1 1)) (* (mat-entry mat 0 1) (mat-entry mat 1 0))))
+
 (provide (all-defined-out))
