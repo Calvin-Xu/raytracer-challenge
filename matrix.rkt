@@ -42,20 +42,9 @@
 
 (: mat= (-> Matrix Matrix Boolean))
 (define (mat= m1 m2)
-  (: flatten-mat (-> Matrix (Listof Float)))
-  (define (flatten-mat mat)
-    (cast (flatten (vector->list (vector-map vector->list mat))) (Listof Float)))
-  (: compare (-> (Listof Float) (Listof Float) Boolean))
-  (define (compare l1 l2)
-    (cond
-      ;; guarantee non-empty lists in 2nd case for optimization
-      ;; lengths are checked equal beforehand
-      [(or (null? l1) (null? l2)) #t]
-      [(f= (car l1) (car l2)) (compare (cdr l1) (cdr l2))]
-      [else #f]))
-  (and (= (mat-m m1) (mat-m m2))
-       (= (mat-n m1) (mat-n m2))
-       (compare (flatten-mat m1) (flatten-mat m2))))
+  (for/and: : Boolean ([row1 m1] [row2 m2])
+    (for/and: : Boolean ([col1 row1] [col2 row2])
+      (f= col1 col2))))
 
 (: mat* (-> Matrix Matrix Matrix))
 (define (mat* mat1 mat2)
