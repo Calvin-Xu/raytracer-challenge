@@ -670,13 +670,116 @@ The following is very bad because I couldn't figure out a functional way of doin
 (run-tests canvas-test)
 #+END_SRC
 
-* Matrices
-** Creating a Matrix
-** Multiplying Matrices
-** The Identity Matrix
-** Transposing Matrices
-** Inverting Matrices
-** Putting It Together
+* NEXT Matrices
+:PROPERTIES:
+:ACTIVATED: [2022-08-05]
+:END:
+** TODO Creating a Matrix
+
+I still want to try multidimensional vectors...
+
+#+NAME: matrix-base
+#+BEGIN_SRC racket :noweb yes
+(struct matrix
+        ([m : Exact-Nonnegative-Integer]
+         [n : Exact-Nonnegative-Integer]
+         [elements : (Immutable-Vectorof (Immutable-Vectorof Real))])
+  #:prefab
+  #:type-name Matrix)
+
+(: mat
+   (-> Exact-Nonnegative-Integer
+       Exact-Nonnegative-Integer
+       (Immutable-Vectorof (Immutable-Vectorof Real))
+       Matrix))
+(define (mat m n rows)
+  (define n-eq?
+    (for/fold ([res : Boolean #t]) ([row : (Immutable-Vectorof Real) rows])
+      (and res (= n (vector-length row)))))
+  (if (and (= m (vector-length rows)) n-eq?)
+      (matrix m n rows)
+      (error "Illegal operation: input not m by n 2D immutable vector" rows)))
+
+(: mat-m (-> Matrix Exact-Nonnegative-Integer))
+(define (mat-m mat)
+  (matrix-m mat))
+
+(: mat-n (-> Matrix Exact-Nonnegative-Integer))
+(define (mat-n mat)
+  (matrix-n mat))
+
+(: mat-elems (-> Matrix (Immutable-Vectorof (Immutable-Vectorof Real))))
+(define (mat-elems mat)
+  (matrix-elements mat))
+
+(: mat-entry (-> Matrix Exact-Nonnegative-Integer Exact-Nonnegative-Integer Real))
+(define (mat-entry mat m n)
+  (if (or (>= m (mat-m mat)) (>= n (mat-n mat)))
+      (error "Illegal operation: access matrix element out of bounds")
+      (vector-ref (vector-ref (mat-elems mat) m) n)))
+#+END_SRC
+
+anyways, here's a snippet for flattenning a matrix into 1D list in case I ever need it:
+
+#+NAME: 
+#+BEGIN_SRC racket :noweb yes
+(: flatten-matrix (-> Matrix (Listof Real)))
+(define (flatten-matrix mat)
+  (for/fold ([acc '()] #:result (reverse acc)) ([row mat])
+    (cons (vector->list row) acc)))
+#+END_SRC
+
+** TODO Multiplying Matrices
+** TODO The Identity Matrix
+** TODO Transposing Matrices
+** TODO Inverting Matrices
+** TODO Putting It Together
+
+#+NAME: matrix
+#+BEGIN_SRC racket :noweb yes :tangle matrix.rkt
+#lang typed/racket
+(require "tuples.rkt")
+
+<<matrix-base>>
+
+(provide (all-defined-out))
+#+END_SRC
+
+#+BEGIN_SRC racket :noweb yes :tangle tests/matrix-test.rkt
+#lang typed/racket
+(require typed/rackunit
+         typed/rackunit/text-ui
+         "../tuples.rkt"
+         "../matrix.rkt")
+
+<<check-tuple=>>
+
+(define canvas-test
+  (test-suite
+   "Matrices"
+   (test-case
+    "define matrix"
+    (define m (mat 4 4 #[#[1 2 3 4] #[5.5 6.5 7.5 8.5] #[9 10 11 12] #[13.5 14.5 15.5 16.5]]))
+    (check-equal? (mat-entry m 0 0) 1)
+    (check-equal? (mat-entry m 0 3) 4)
+    (check-equal? (mat-entry m 1 0) 5.5)
+    (check-equal? (mat-entry m 1 2) 7.5)
+    (check-equal? (mat-entry m 2 2) 11)
+    (check-equal? (mat-entry m 3 0) 13.5)
+    (check-equal? (mat-entry m 3 2) 15.5)
+    (define m2 (mat 2 2 #[#[-3 5] #[1 -2]]))
+    (check-equal? (mat-entry m2 0 0) -3)
+    (check-equal? (mat-entry m2 0 1) 5)
+    (check-equal? (mat-entry m2 1 0) 1)
+    (check-equal? (mat-entry m2 1 1) -2)
+    (define m3 (mat 3 3 #[#[-3 5 0] #[1 -2 -7] #[0 1 1]]))
+    (check-equal? (mat-entry m3 0 0) -3)
+    (check-equal? (mat-entry m3 1 1) -2)
+    (check-equal? (mat-entry m3 2 2) 1))))
+
+(run-tests canvas-test)
+#+END_SRC
+
 * Matrix Transformations
 ** Translation
 ** Scaling
