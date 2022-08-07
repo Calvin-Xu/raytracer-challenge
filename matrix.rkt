@@ -105,10 +105,6 @@
   ((inst vector->immutable-vector (Immutable-Vectorof Float))
    (build-vector (mat-n mat) (lambda ([y : Exact-Nonnegative-Integer]) (mat-col mat y)))))
 
-(: det-2 (-> Matrix Float))
-(define (det-2 mat)
-  (- (* (mat-entry mat 0 0) (mat-entry mat 1 1)) (* (mat-entry mat 0 1) (mat-entry mat 1 0))))
-
 (: submat (-> Matrix Exact-Nonnegative-Integer Exact-Nonnegative-Integer Matrix))
 (define (submat mat row col)
   (let ([rows (vector-append (vector-take mat row) (vector-drop mat (add1 row)))])
@@ -117,5 +113,22 @@
       (for/vector ([y (in-vector rows)])
         (vector->immutable-vector (vector-append (vector-take y col) (vector-drop y (add1 col))))))
      Matrix)))
+
+(: det-2 (-> Matrix Float))
+(define (det-2 mat)
+  (- (* (mat-entry mat 0 0) (mat-entry mat 1 1)) (* (mat-entry mat 0 1) (mat-entry mat 1 0))))
+
+(: det (-> Matrix Float))
+(define (det mat)
+  (cond
+    [(and (= (mat-m mat) 2) (= (mat-n mat) 2)) (det-2 mat)]
+    [else
+     (for/fold ([sum : Float 0.]
+                [col : Exact-Nonnegative-Integer 1]
+                #:result sum)
+               ([elem (in-vector (mat-row mat 0))])
+       (values
+        (+ sum (* elem ((if (odd? col) identity -) (det (submat mat 0 (max 0 (sub1 col)))))))
+        (add1 col)))]))
 
 (provide (all-defined-out))
