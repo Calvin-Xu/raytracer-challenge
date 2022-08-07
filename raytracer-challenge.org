@@ -774,7 +774,19 @@ A snippet to flatten a matrix into a 1D list if I ever need it.
 #+END_SRC
 
 ** DONE The Identity Matrix
-The book says we only need the 4*4 identity matrix for the raytracer, so I'll not write a function that generates them.
+#+NAME: id-mat
+#+BEGIN_SRC racket :noweb yes
+(: id-mat (-> Exact-Nonnegative-Integer Matrix))
+(define (id-mat n)
+  ((inst vector->immutable-vector (Immutable-Vectorof Float))
+   (build-vector n
+                 (lambda ([i : Exact-Nonnegative-Integer])
+                   (vector->immutable-vector (build-vector n
+                                                           (lambda ([j : Exact-Nonnegative-Integer])
+                                                             (if (= i j) 1. 0.))))))))
+#+END_SRC
+
+The book says we pretty much only use the 4*4 identity matrix, so I'll just write it out.
 
 #+NAME: id-mat-4
 #+BEGIN_SRC racket :noweb yes
@@ -793,7 +805,7 @@ The book says we only need the 4*4 identity matrix for the raytracer, so I'll no
 #+END_SRC
 
 ** TODO Inverting Matrices
-Cofactor expansion; refer to https://textbooks.math.gatech.edu/ila/determinants-cofactors.html
+Cofactor expansion; refer to https://textbooks.math.gatech.edu/ila/determinants-cofactors.html; note that it refers to submatrices as minors instead of their determinant.
 
 *** Determining Determinants of 2x2 Matrices
 #+NAME: det-2
@@ -831,6 +843,8 @@ Had to cast in the end despite trying all kind of ways to convince the typecheck
 <<matrix-base>>
 
 <<mat*>>
+
+<<id-mat>>
 
 <<id-mat-4>>
 
@@ -901,6 +915,7 @@ Had to cast in the end despite trying all kind of ways to convince the typecheck
               (define a (mat 4 4 #[#[1. 2. 3. 4.] #[2. 4. 4. 2.] #[8. 6. 4. 1.] #[0. 0. 0. 1.]]))
               (define b (tuple 1. 2. 3. 1.))
               (check-tuple= (mat-tuple* a b) (tuple 18. 24. 33. 1.)))
+   (test-case "generate identity matrix" (check-true (mat= (id-mat 4) id-mat-4)))
    (test-case "multiply identity matrix"
               (define a (mat 4 4 #[#[0. 1. 2. 4.] #[1. 2. 4. 8.] #[2. 4. 8. 16.] #[4. 8. 16. 32.]]))
               (check-true (mat= (mat* a id-mat-4) a))

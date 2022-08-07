@@ -87,6 +87,15 @@
            (vector-ref (vector-ref m 3) 0)))
   (matrix->tuple (mat* mat1 (tuple->matrix arg))))
 
+(: id-mat (-> Exact-Nonnegative-Integer Matrix))
+(define (id-mat n)
+  ((inst vector->immutable-vector (Immutable-Vectorof Float))
+   (build-vector n
+                 (lambda ([i : Exact-Nonnegative-Integer])
+                   (vector->immutable-vector (build-vector n
+                                                           (lambda ([j : Exact-Nonnegative-Integer])
+                                                             (if (= i j) 1. 0.))))))))
+
 (: id-mat-4 Matrix)
 (define id-mat-4
   (mat 4 4 #[#[1. 0. 0. 0.] #[0. 1. 0. 0.] #[0. 0. 1. 0.] #[0. 0. 0. 1.]]))

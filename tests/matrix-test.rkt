@@ -60,6 +60,7 @@
               (define a (mat 4 4 #[#[1. 2. 3. 4.] #[2. 4. 4. 2.] #[8. 6. 4. 1.] #[0. 0. 0. 1.]]))
               (define b (tuple 1. 2. 3. 1.))
               (check-tuple= (mat-tuple* a b) (tuple 18. 24. 33. 1.)))
+   (test-case "generate identity matrix" (check-true (mat= (id-mat 4) id-mat-4)))
    (test-case "multiply identity matrix"
               (define a (mat 4 4 #[#[0. 1. 2. 4.] #[1. 2. 4. 8.] #[2. 4. 8. 16.] #[4. 8. 16. 32.]]))
               (check-true (mat= (mat* a id-mat-4) a))
