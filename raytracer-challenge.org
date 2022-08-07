@@ -737,11 +737,10 @@ A snippet to flatten a matrix into a 1D list if I ever need it.
   (define (cross* v1 v2)
     (for/fold ([sum 0.]) ([x (in-vector v1)] [y (in-vector v2)])
       (+ sum (* x y))))
-  
-  (let ([m1 : Integer (mat-m mat1)]
-        [n1 : Integer (mat-n mat1)]
-        [m2 : Integer (mat-m mat2)]
-        [n2 : Integer (mat-n mat2)])
+    (let ([m1 : Integer (mat-m mat1)]
+          [n1 : Integer (mat-n mat1)]
+          [m2 : Integer (mat-m mat2)]
+          [n2 : Integer (mat-n mat2)])
     (if (= n1 m2)
         ((inst vector->immutable-vector (Immutable-Vectorof Float))
          (build-vector m1
@@ -756,14 +755,14 @@ A snippet to flatten a matrix into a 1D list if I ever need it.
 (define (mat-tuple* mat1 arg)
   (: tuple->matrix (-> Tuple Matrix))
   (define (tuple->matrix t)
-    (let ([rows : (Listof Float) (list (tuple-x t) (tuple-y t) (tuple-z t) (tuple-w t))])
-       ((inst vector->immutable-vector (Immutable-Vectorof Float))
-        (build-vector 4
-                      (lambda ([i : Integer])
-                        (vector->immutable-vector
-                         (build-vector (ann 1 Integer)
-                                       (lambda (j) ((inst list-ref Float) rows i)))))))))
-
+    (let ([rows : (Listof Float)
+                (list (tuple-x t) (tuple-y t) (tuple-z t) (tuple-w t))])
+      ((inst vector->immutable-vector (Immutable-Vectorof Float))
+       (build-vector 4
+                     (lambda ([i : Integer])
+                       (vector->immutable-vector
+                        (build-vector (ann 1 Integer)
+                                      (lambda (j) ((inst list-ref Float) rows i)))))))))
   (: matrix->tuple (-> Matrix Tuple))
   (define (matrix->tuple m)
     (tuple (vector-ref (vector-ref m 0) 0)
@@ -840,9 +839,8 @@ Cofactor expansion; refer to https://textbooks.math.gatech.edu/ila/determinants-
                 [col : Exact-Nonnegative-Integer 0]
                 #:result sum)
                ([elem (in-vector (mat-row mat 0))])
-       (values
-        (+ sum (* elem ((if (even? col) identity -) (det (submat mat 0 (max 0 col))))))
-        (add1 col)))]))
+       (values (+ sum (* elem ((if (even? col) identity -) (det (submat mat 0 (max 0 col))))))
+               (add1 col)))]))
 #+END_SRC
 
 *** Implementing Inversion
