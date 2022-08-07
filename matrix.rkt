@@ -46,24 +46,33 @@
     (for/and: : Boolean ([col1 (in-vector row1)] [col2 (in-vector row2)])
       (f= col1 col2))))
 
+(: build-matrix
+   (-> Exact-Nonnegative-Integer
+       Exact-Nonnegative-Integer
+       (-> Exact-Nonnegative-Integer Exact-Nonnegative-Integer Float)
+       Matrix))
+(define (build-matrix m n f)
+  ((inst vector->immutable-vector (Immutable-Vectorof Float))
+   (build-vector m
+                 (lambda ([row : Exact-Nonnegative-Integer])
+                   (vector->immutable-vector
+                    (build-vector n (lambda ([col : Exact-Nonnegative-Integer]) (f row col))))))))
+
 (: mat* (-> Matrix Matrix Matrix))
 (define (mat* mat1 mat2)
   (: cross* (-> (Immutable-Vectorof Float) (Immutable-Vectorof Float) Float))
   (define (cross* v1 v2)
     (for/fold ([sum 0.]) ([x (in-vector v1)] [y (in-vector v2)])
       (+ sum (* x y))))
-    (let ([m1 : Integer (mat-m mat1)]
-          [n1 : Integer (mat-n mat1)]
-          [m2 : Integer (mat-m mat2)]
-          [n2 : Integer (mat-n mat2)])
+  (let ([m1 : Exact-Nonnegative-Integer (mat-m mat1)]
+        [n1 : Exact-Nonnegative-Integer (mat-n mat1)]
+        [m2 : Exact-Nonnegative-Integer (mat-m mat2)]
+        [n2 : Exact-Nonnegative-Integer (mat-n mat2)])
     (if (= n1 m2)
-        ((inst vector->immutable-vector (Immutable-Vectorof Float))
-         (build-vector m1
-                       (lambda ([row : Exact-Nonnegative-Integer])
-                         (vector->immutable-vector
-                          (build-vector n2
-                                        (lambda ([col : Exact-Nonnegative-Integer])
-                                          (cross* (mat-row mat1 row) (mat-col mat2 col))))))))
+        (build-matrix m1
+                      n2
+                      (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
+                        (cross* (mat-row mat1 row) (mat-col mat2 col))))
         (error "Illegal operation: multiply matrices with incompatible sizes" mat1 mat2))))
 
 (: mat-tuple* (-> Matrix Tuple Tuple))
@@ -72,12 +81,10 @@
   (define (tuple->matrix t)
     (let ([rows : (Listof Float)
                 (list (tuple-x t) (tuple-y t) (tuple-z t) (tuple-w t))])
-      ((inst vector->immutable-vector (Immutable-Vectorof Float))
-       (build-vector 4
-                     (lambda ([i : Integer])
-                       (vector->immutable-vector
-                        (build-vector (ann 1 Integer)
-                                      (lambda (j) ((inst list-ref Float) rows i)))))))))
+      (build-matrix 4
+                    1
+                    (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
+                      ((inst list-ref Float) rows row)))))
   (: matrix->tuple (-> Matrix Tuple))
   (define (matrix->tuple m)
     (tuple (vector-ref (vector-ref m 0) 0)
@@ -88,12 +95,10 @@
 
 (: id-mat (-> Exact-Nonnegative-Integer Matrix))
 (define (id-mat n)
-  ((inst vector->immutable-vector (Immutable-Vectorof Float))
-   (build-vector n
-                 (lambda ([i : Exact-Nonnegative-Integer])
-                   (vector->immutable-vector
-                    (build-vector n
-                                  (lambda ([j : Exact-Nonnegative-Integer]) (if (= i j) 1. 0.))))))))
+  (build-matrix n
+                n
+                (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
+                  (if (= row col) 1. 0.))))
 
 (: id-mat-4 Matrix)
 (define id-mat-4
@@ -140,12 +145,10 @@
   (let ([m (mat-m mat)] [n (mat-n mat)] [determinant (det mat)])
     (if (or (not (= m n)) (= 0. determinant))
         (error "Illegal operation: matrix cannot be inverted")
-        (transpose ((inst vector->immutable-vector (Immutable-Vectorof Float))
-                (build-vector n
-                              (lambda ([i : Exact-Nonnegative-Integer])
-                                (vector->immutable-vector
-                                 (build-vector n
-                                               (lambda ([j : Exact-Nonnegative-Integer])
-                                                 (/ (cofactor mat i j) determinant)))))))))))
+        (transpose (build-matrix
+                    n
+                    n
+                    (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
+                      (/ (cofactor mat row col) determinant)))))))
 
 (provide (all-defined-out))

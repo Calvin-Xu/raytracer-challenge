@@ -665,7 +665,7 @@ The following is very bad because I couldn't figure out a functional way of doin
 (run-tests canvas-test)
 #+END_SRC
 
-* NEXT Matrices
+* DONE Matrices
 :PROPERTIES:
 :ACTIVATED: [2022-08-05]
 :END:
@@ -729,6 +729,21 @@ A snippet to flatten a matrix into a 1D list if I ever need it.
 #+END_SRC
 
 ** DONE Multiplying Matrices
+#+NAME: build-matrix
+#+BEGIN_SRC racket :noweb yes
+(: build-matrix
+   (-> Exact-Nonnegative-Integer
+       Exact-Nonnegative-Integer
+       (-> Exact-Nonnegative-Integer Exact-Nonnegative-Integer Float)
+       Matrix))
+(define (build-matrix m n f)
+  ((inst vector->immutable-vector (Immutable-Vectorof Float))
+   (build-vector m
+                 (lambda ([row : Exact-Nonnegative-Integer])
+                   (vector->immutable-vector
+                    (build-vector n (lambda ([col : Exact-Nonnegative-Integer]) (f row col))))))))
+#+END_SRC
+
 #+NAME: mat*
 #+BEGIN_SRC racket :noweb yes
 (: mat* (-> Matrix Matrix Matrix))
@@ -737,18 +752,15 @@ A snippet to flatten a matrix into a 1D list if I ever need it.
   (define (cross* v1 v2)
     (for/fold ([sum 0.]) ([x (in-vector v1)] [y (in-vector v2)])
       (+ sum (* x y))))
-    (let ([m1 : Integer (mat-m mat1)]
-          [n1 : Integer (mat-n mat1)]
-          [m2 : Integer (mat-m mat2)]
-          [n2 : Integer (mat-n mat2)])
+  (let ([m1 : Exact-Nonnegative-Integer (mat-m mat1)]
+        [n1 : Exact-Nonnegative-Integer (mat-n mat1)]
+        [m2 : Exact-Nonnegative-Integer (mat-m mat2)]
+        [n2 : Exact-Nonnegative-Integer (mat-n mat2)])
     (if (= n1 m2)
-        ((inst vector->immutable-vector (Immutable-Vectorof Float))
-         (build-vector m1
-                       (lambda ([row : Exact-Nonnegative-Integer])
-                         (vector->immutable-vector
-                          (build-vector n2
-                                        (lambda ([col : Exact-Nonnegative-Integer])
-                                          (cross* (mat-row mat1 row) (mat-col mat2 col))))))))
+        (build-matrix m1
+                      n2
+                      (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
+                        (cross* (mat-row mat1 row) (mat-col mat2 col))))
         (error "Illegal operation: multiply matrices with incompatible sizes" mat1 mat2))))
 
 (: mat-tuple* (-> Matrix Tuple Tuple))
@@ -757,12 +769,10 @@ A snippet to flatten a matrix into a 1D list if I ever need it.
   (define (tuple->matrix t)
     (let ([rows : (Listof Float)
                 (list (tuple-x t) (tuple-y t) (tuple-z t) (tuple-w t))])
-      ((inst vector->immutable-vector (Immutable-Vectorof Float))
-       (build-vector 4
-                     (lambda ([i : Integer])
-                       (vector->immutable-vector
-                        (build-vector (ann 1 Integer)
-                                      (lambda (j) ((inst list-ref Float) rows i)))))))))
+      (build-matrix 4
+                    1
+                    (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
+                      ((inst list-ref Float) rows row)))))
   (: matrix->tuple (-> Matrix Tuple))
   (define (matrix->tuple m)
     (tuple (vector-ref (vector-ref m 0) 0)
@@ -777,12 +787,10 @@ A snippet to flatten a matrix into a 1D list if I ever need it.
 #+BEGIN_SRC racket :noweb yes
 (: id-mat (-> Exact-Nonnegative-Integer Matrix))
 (define (id-mat n)
-  ((inst vector->immutable-vector (Immutable-Vectorof Float))
-   (build-vector n
-                 (lambda ([i : Exact-Nonnegative-Integer])
-                   (vector->immutable-vector
-                    (build-vector n
-                                  (lambda ([j : Exact-Nonnegative-Integer]) (if (= i j) 1. 0.))))))))
+  (build-matrix n
+                n
+                (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
+                  (if (= row col) 1. 0.))))
 #+END_SRC
 
 The book says we pretty much only use the 4*4 identity matrix, so I'll just write it out.
@@ -861,13 +869,11 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
   (let ([m (mat-m mat)] [n (mat-n mat)] [determinant (det mat)])
     (if (or (not (= m n)) (= 0. determinant))
         (error "Illegal operation: matrix cannot be inverted")
-        (transpose ((inst vector->immutable-vector (Immutable-Vectorof Float))
-                (build-vector n
-                              (lambda ([i : Exact-Nonnegative-Integer])
-                                (vector->immutable-vector
-                                 (build-vector n
-                                               (lambda ([j : Exact-Nonnegative-Integer])
-                                                 (/ (cofactor mat i j) determinant)))))))))))
+        (transpose (build-matrix
+                    n
+                    n
+                    (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
+                      (/ (cofactor mat row col) determinant)))))))
 #+END_SRC
 
 ** DONE Putting It Together
@@ -875,6 +881,7 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 #+BEGIN_SRC racket :noweb yes
 <<tuples>>
 <<matrix-base>>
+<<build-matrix>>
 <<mat*>>
 <<id-mat>>
 <<id-mat-4>>
@@ -917,13 +924,14 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 : '#(#(20.0 98.0 3.0 -159.0) #(13.0 28.0 18.0 -54.0) #(99.0 33.0 -48.0 9.0) #(-52.0 -57.0 8.0 71.0))
 : '#(#(-38.0 35.0 93.0 60.0) #(-57.0 -30.0 -84.0 -29.0) #(162.0 0.0 114.0 13.0) #(-67.0 -20.0 18.0 25.0))
 
-
 #+NAME: matrix
 #+BEGIN_SRC racket :noweb yes :tangle matrix.rkt
 #lang typed/racket
 (require "tuples.rkt")
 
 <<matrix-base>>
+
+<<build-matrix>>
 
 <<mat*>>
 
