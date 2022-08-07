@@ -1,4 +1,5 @@
 #lang typed/racket
+(provide (all-defined-out))
 
 (struct tuple ([x : Float] [y : Float] [z : Float] [w : Float]) #:prefab #:type-name Tuple)
 (struct point tuple () #:prefab #:type-name Point)
@@ -103,5 +104,3 @@
   (vec (- (* (tuple-y v1) (tuple-z v2)) (* (tuple-z v1) (tuple-y v2)))
        (- (* (tuple-z v1) (tuple-x v2)) (* (tuple-x v1) (tuple-z v2)))
        (- (* (tuple-x v1) (tuple-y v2)) (* (tuple-y v1) (tuple-x v2)))))
-
-(provide (all-defined-out))

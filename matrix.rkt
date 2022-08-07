@@ -1,4 +1,5 @@
 #lang typed/racket
+(provide (except-out (all-defined-out) det-2))
 (require "tuples.rkt")
 
 (define-type Matrix (Immutable-Vectorof (Immutable-Vectorof Float)))
@@ -69,8 +70,7 @@
         [m2 : Exact-Nonnegative-Integer (mat-m mat2)]
         [n2 : Exact-Nonnegative-Integer (mat-n mat2)])
     (if (= n1 m2)
-        (build-matrix m1
-                      n2
+        (build-matrix m1 n2
                       (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
                         (cross* (mat-row mat1 row) (mat-col mat2 col))))
         (error "Illegal operation: multiply matrices with incompatible sizes" mat1 mat2))))
@@ -81,8 +81,7 @@
   (define (tuple->matrix t)
     (let ([rows : (Listof Float)
                 (list (tuple-x t) (tuple-y t) (tuple-z t) (tuple-w t))])
-      (build-matrix 4
-                    1
+      (build-matrix 4 1
                     (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
                       ((inst list-ref Float) rows row)))))
   (: matrix->tuple (-> Matrix Tuple))
@@ -127,28 +126,25 @@
   (cond
     [(and (= (mat-m mat) 2) (= (mat-n mat) 2)) (det-2 mat)]
     [else
-     (for/fold ([sum : Float 0.]
-                [col : Exact-Nonnegative-Integer 0]
-                #:result sum)
+     (for/fold ([sum : Float 0.] [col : Exact-Nonnegative-Integer 0] #:result sum)
                ([elem (in-vector (mat-row mat 0))])
-       (values (+ sum (* elem ((if (even? col) identity -) (det (submat mat 0 (max 0 col))))))
-               (add1 col)))]))
+       (values
+        (+ sum (* elem ((if (even? col) identity -) (det (submat mat 0 col)))))
+        (add1 col)))]))
 
 (: cofactor (-> Matrix Exact-Nonnegative-Integer Exact-Nonnegative-Integer Float))
 (define (cofactor mat row col)
   (if (or (>= row (mat-m mat)) (>= col (mat-n mat)))
-      (error "Illegal operation: calculate cofactor out of bounds")
+      (error "Illegal operation: calculate cofactor out of bounds" mat row col)
       ((if (even? (+ row col)) identity -) (det (submat mat row col)))))
 
 (: inverse (-> Matrix Matrix))
 (define (inverse mat)
   (let ([m (mat-m mat)] [n (mat-n mat)] [determinant (det mat)])
     (if (or (not (= m n)) (= 0. determinant))
-        (error "Illegal operation: matrix cannot be inverted")
+        (error "Illegal operation: matrix cannot be inverted" mat)
         (transpose (build-matrix
                     n
                     n
                     (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
                       (/ (cofactor mat row col) determinant)))))))
-
-(provide (all-defined-out))

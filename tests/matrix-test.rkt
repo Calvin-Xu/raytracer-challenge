@@ -76,9 +76,6 @@
 (define matrix-inversion-test
   (test-suite
    "Matrix Inversion"
-   (test-case "find determinant of 2x2 matrix"
-              (define m (mat 2 2 #[#[1. 5.] #[-3. 2.]]))
-              (check-equal? (det-2 m) 17.))
    (test-case "find submatrices"
               (define a (mat 3 3 #[#[1. 5. 0.] #[-3. 2. 7.] #[0. 6. -3.]]))
               (define b (mat 2 2 #[#[-3. 2.] #[0. 6.]]))

@@ -14,7 +14,7 @@ My implementation will be in Typed Racket with unit tests in RackUnit. I will no
 :ACTIVATED: [2022-07-30]
 :END:
 ** /Refactor notes/
-Originally all the numbers had ~Real~ type; I changed them all to ~Float~ after going into Optimization Coach in Dr. Racket and saw all the red areas screaming at me. However, this brings about a really irratating problem. Say you have a function that accepts a float, but you don't want to type the parameter with a decimal point all the time (i.e., ~3~ instead of ~3.~ or ~3.0~). Is there any way you can do that? Not any I could find! perhaps some macros could work, but I don't want to go that far. As far as I can tell, when you feed a integer like ~3~ into the Typed Racket interpreter, there's no way of telling it you actually want it to be a higher type or promoting in any way. If you try to cast, it thinks you are trying to cast an ~Integer~ to ~Float~...
+Originally all the numbers had ~Real~ type; I changed them all to ~Float~ after going into Optimization Coach in Dr. Racket and saw all the red areas screaming at me. However, this brings about a really irritating problem. Say you have a function that accepts a float, but you don't want to type the parameter with a decimal point all the time (i.e., ~3~ instead of ~3.~ or ~3.0~). Is there any way you can do that? Not any I could find! perhaps some macros could work, but I don't want to go that far. As far as I can tell, when you feed a integer like ~3~ into the Typed Racket interpreter, there's no way of telling it you actually want it to be a higher type or promoting in any way. If you try to cast, it thinks you are trying to cast an ~Integer~ to ~Float~...
 
 In all the documentation I saw, people just type out the decimal point. So I guess I'll do that.
 
@@ -301,6 +301,7 @@ Position: '#s((point tuple 4) 10.11370849898476 0.3137084989847604 0.0 1.0)
 #+NAME: tuples
 #+BEGIN_SRC racket :noweb yes :tangle tuples.rkt
 #lang typed/racket
+(provide (all-defined-out))
 
 <<tuple-base>>
 
@@ -327,8 +328,6 @@ Position: '#s((point tuple 4) 10.11370849898476 0.3137084989847604 0.0 1.0)
 <<dot*>>
 
 <<cross*>>
-
-(provide (all-defined-out))
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes :tangle tests/tuples-test.rkt
@@ -596,6 +595,7 @@ The following is very bad because I couldn't figure out a functional way of doin
 #+NAME: canvas
 #+BEGIN_SRC racket :noweb yes :tangle canvas.rkt
 #lang typed/racket
+(provide (except-out (all-defined-out) color-op))
 (require "tuples.rkt")
 
 <<color-base>>
@@ -607,8 +607,6 @@ The following is very bad because I couldn't figure out a functional way of doin
 <<canvas-base>>
 
 <<canvas-save>>
-
-(provide (except-out (all-defined-out) color-op))
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes :tangle tests/canvas-test.rkt
@@ -757,8 +755,7 @@ A snippet to flatten a matrix into a 1D list if I ever need it.
         [m2 : Exact-Nonnegative-Integer (mat-m mat2)]
         [n2 : Exact-Nonnegative-Integer (mat-n mat2)])
     (if (= n1 m2)
-        (build-matrix m1
-                      n2
+        (build-matrix m1 n2
                       (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
                         (cross* (mat-row mat1 row) (mat-col mat2 col))))
         (error "Illegal operation: multiply matrices with incompatible sizes" mat1 mat2))))
@@ -769,8 +766,7 @@ A snippet to flatten a matrix into a 1D list if I ever need it.
   (define (tuple->matrix t)
     (let ([rows : (Listof Float)
                 (list (tuple-x t) (tuple-y t) (tuple-z t) (tuple-w t))])
-      (build-matrix 4
-                    1
+      (build-matrix 4 1
                     (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
                       ((inst list-ref Float) rows row)))))
   (: matrix->tuple (-> Matrix Tuple))
@@ -812,14 +808,6 @@ The book says we pretty much only use the 4*4 identity matrix, so I'll just writ
 #+END_SRC
 
 ** DONE Inverting Matrices
-*** Determining Determinants of 2x2 Matrices
-#+NAME: det-2
-#+BEGIN_SRC racket :noweb yes
-(: det-2 (-> Matrix Float))
-(define (det-2 mat)
-  (- (* (mat-entry mat 0 0) (mat-entry mat 1 1)) (* (mat-entry mat 0 1) (mat-entry mat 1 0))))
-#+END_SRC
-
 *** Spotting Submatrices
 #+NAME: submat
 #+BEGIN_SRC racket :noweb yes
@@ -834,21 +822,24 @@ The book says we pretty much only use the 4*4 identity matrix, so I'll just writ
 #+END_SRC
 Had to cast in the end despite trying all kind of ways to convince the typechecker...
 
-*** Determining Determinants of Larger Matrices
+*** Calculating the Determinant
 Cofactor expansion; refer to https://textbooks.math.gatech.edu/ila/determinants-cofactors.html; note that it refers to submatrices as minors instead of their determinant.
 #+NAME: det
 #+BEGIN_SRC racket :noweb yes
+(: det-2 (-> Matrix Float))
+(define (det-2 mat)
+  (- (* (mat-entry mat 0 0) (mat-entry mat 1 1)) (* (mat-entry mat 0 1) (mat-entry mat 1 0))))
+
 (: det (-> Matrix Float))
 (define (det mat)
   (cond
     [(and (= (mat-m mat) 2) (= (mat-n mat) 2)) (det-2 mat)]
     [else
-     (for/fold ([sum : Float 0.]
-                [col : Exact-Nonnegative-Integer 0]
-                #:result sum)
+     (for/fold ([sum : Float 0.] [col : Exact-Nonnegative-Integer 0] #:result sum)
                ([elem (in-vector (mat-row mat 0))])
-       (values (+ sum (* elem ((if (even? col) identity -) (det (submat mat 0 (max 0 col))))))
-               (add1 col)))]))
+       (values
+        (+ sum (* elem ((if (even? col) identity -) (det (submat mat 0 col)))))
+        (add1 col)))]))
 #+END_SRC
 
 *** Implementing Inversion
@@ -858,7 +849,7 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 (: cofactor (-> Matrix Exact-Nonnegative-Integer Exact-Nonnegative-Integer Float))
 (define (cofactor mat row col)
   (if (or (>= row (mat-m mat)) (>= col (mat-n mat)))
-      (error "Illegal operation: calculate cofactor out of bounds")
+      (error "Illegal operation: calculate cofactor out of bounds" mat row col)
       ((if (even? (+ row col)) identity -) (det (submat mat row col)))))
 #+END_SRC
 
@@ -868,7 +859,7 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 (define (inverse mat)
   (let ([m (mat-m mat)] [n (mat-n mat)] [determinant (det mat)])
     (if (or (not (= m n)) (= 0. determinant))
-        (error "Illegal operation: matrix cannot be inverted")
+        (error "Illegal operation: matrix cannot be inverted" mat)
         (transpose (build-matrix
                     n
                     n
@@ -877,7 +868,6 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 #+END_SRC
 
 ** DONE Putting It Together
-
 #+BEGIN_SRC racket :noweb yes
 <<tuples>>
 <<matrix-base>>
@@ -887,7 +877,6 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 <<id-mat-4>>
 <<transpose>>
 <<submat>>
-<<det-2>>
 <<det>>
 <<cofactor>>
 <<inverse>>
@@ -927,6 +916,7 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 #+NAME: matrix
 #+BEGIN_SRC racket :noweb yes :tangle matrix.rkt
 #lang typed/racket
+(provide (except-out (all-defined-out) det-2))
 (require "tuples.rkt")
 
 <<matrix-base>>
@@ -943,15 +933,11 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 
 <<submat>>
 
-<<det-2>>
-
 <<det>>
 
 <<cofactor>>
 
 <<inverse>>
-
-(provide (all-defined-out))
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes :tangle tests/matrix-test.rkt
@@ -1028,9 +1014,6 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 (define matrix-inversion-test
   (test-suite
    "Matrix Inversion"
-   (test-case "find determinant of 2x2 matrix"
-              (define m (mat 2 2 #[#[1. 5.] #[-3. 2.]]))
-              (check-equal? (det-2 m) 17.))
    (test-case "find submatrices"
               (define a (mat 3 3 #[#[1. 5. 0.] #[-3. 2. 7.] #[0. 6. -3.]]))
               (define b (mat 2 2 #[#[-3. 2.] #[0. 6.]]))
