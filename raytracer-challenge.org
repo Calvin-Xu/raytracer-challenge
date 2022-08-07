@@ -804,7 +804,7 @@ The book says we pretty much only use the 4*4 identity matrix, so I'll just writ
    (build-vector (mat-n mat) (lambda ([y : Exact-Nonnegative-Integer]) (mat-col mat y)))))
 #+END_SRC
 
-** TODO Inverting Matrices
+** DONE Inverting Matrices
 *** Determining Determinants of 2x2 Matrices
 #+NAME: det-2
 #+BEGIN_SRC racket :noweb yes
@@ -856,6 +856,22 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
       ((if (even? (+ row col)) identity -) (det (submat mat row col)))))
 #+END_SRC
 
+#+NAME: inverse
+#+BEGIN_SRC racket :noweb yes
+(: inverse (-> Matrix Matrix))
+(define (inverse mat)
+  (let ([m (mat-m mat)] [n (mat-n mat)] [determinant (det mat)])
+    (if (or (not (= m n)) (= 0. determinant))
+        (error "Illegal operation: matrix cannot be inverted")
+        (mat-T ((inst vector->immutable-vector (Immutable-Vectorof Float))
+                (build-vector n
+                              (lambda ([i : Exact-Nonnegative-Integer])
+                                (vector->immutable-vector
+                                 (build-vector n
+                                               (lambda ([j : Exact-Nonnegative-Integer])
+                                                 (/ (cofactor mat i j) determinant)))))))))))
+#+END_SRC
+
 ** TODO Putting It Together
 #+NAME: matrix
 #+BEGIN_SRC racket :noweb yes :tangle matrix.rkt
@@ -879,6 +895,8 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 <<det>>
 
 <<cofactor>>
+
+<<inverse>>
 
 (provide (all-defined-out))
 #+END_SRC
@@ -988,50 +1006,51 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
     (check-equal? (det c) -2120.)
     (define d (mat 4 4 #[#[-4. 2. -2. -3.] #[9. 6. 2. 6.] #[0. -5. 1. -5.] #[0. 0. 0. 0.]]))
     (check-equal? (det d) 0.))
-   ;; (test-case
-   ;;  "inverse matrix test 1"
-   ;;  (define a (mat 4 4 #[#[-5. 2. 6. -8.] #[1. -5. 1. 8.] #[7. 7. -6. -7.] #[1. -3. 7. 4.]]))
-   ;;  (define b (inverse a))
-   ;;  (check-equal? (det a) 532.)
-   ;;  (check-equal? (cofactor a 2 3) -160.)
-   ;;  (check-= (mat-entry b 3 2) -160/532 0.00001)
-   ;;  (check-equal? (cofactor a 3 2) 105.)
-   ;;  (check-= (mat-entry b 2 3) 105/532 0.00001)
-   ;;  (define c
-   ;;    (mat 4
-   ;;         4
-   ;;         (#[#[0.21805 0.45113 0.24060 -0.04511]
-   ;;            #[-0.80827 -1.45677 -0.44361 0.52068]
-   ;;            #[-0.07895 -0.22368 -0.05263 0.19737]
-   ;;            #[-0.52256 -0.81391 -0.30075 0.30639]])))
-   ;;  (check-true (mat= b c)))
-   ;; (test-case "inverse matrix test 2"
-   ;;            (define a (mat 4 4 #[8. -5. 9. 2.] #[7. 5. 6. 1.] #[-6. 0. 9. 6.] #[-3. 0. -9. -4.]))
-   ;;            (define b
-   ;;              (mat 4
-   ;;                   4
-   ;;                   #[#[-0.15385 -0.15385 -0.28205 -0.53846]
-   ;;                     #[-0.07692 0.12308 0.02564 0.03077]
-   ;;                     #[0.35897 0.35897 0.43590 0.92308]
-   ;;                     #[-0.69231 -0.69231 -0.76923 -1.92308]]))
-   ;;            (check-true (mat= (inverse a) b)))
-   ;; (test-case "inverse matrix test 3"
-   ;;            (define a (mat 4 4 #[9. 3. 0. 9.] #[-5. -2. -6. -3.] #[-4. 9. 6. 4.] #[-7. 6. 6. 2.]))
-   ;;            (define b
-   ;;              (mat 4
-   ;;                   4
-   ;;                   #[#[-0.04074 -0.07778 0.14444 -0.22222]
-   ;;                     #[-0.07778 0.03333 0.36667 -0.33333]
-   ;;                     #[-0.02901 -0.14630 -0.10926 0.12963]
-   ;;                     #[0.17778 0.06667 -0.26667 0.33333]]))
-   ;;            (check-true (mat= (inverse a) b)))
-   ;; (test-case "multiply matrix product by inverse"
-   ;;            (define a (mat 4 4 #[#[3. -9. 7. 3.] #[3. -8. 2. -9.] #[-4. 4. 4. 1.] #[-6. 5. -1. 1]]))
-   ;;            (define b (mat 4 4 #[#[8. 2. 2. 2.] #[3. -1. 7. 0.] #[7. 0. 5. 4.] #[6. -2. 0. 5.]]))
-   ;;            (define c (mat* a b))
-   ;;            (define d (mat* c (inverse b)))
-   ;;            (check-true (mat= a d)))
-   ))
+   (test-case
+    "inverse matrix test 1"
+    (define a (mat 4 4 #[#[-5. 2. 6. -8.] #[1. -5. 1. 8.] #[7. 7. -6. -7.] #[1. -3. 7. 4.]]))
+    (define b (inverse a))
+    (check-equal? (det a) 532.)
+    (check-equal? (cofactor a 2 3) -160.)
+    (check-= (mat-entry b 3 2) -160/532 0.00001)
+    (check-equal? (cofactor a 3 2) 105.)
+    (check-= (mat-entry b 2 3) 105/532 0.00001)
+    (define c
+      (mat 4
+           4
+           #[#[0.21805 0.45113 0.24060 -0.04511]
+             #[-0.80827 -1.45677 -0.44361 0.52068]
+             #[-0.07895 -0.22368 -0.05263 0.19737]
+             #[-0.52256 -0.81391 -0.30075 0.30639]]))
+    (check-true (mat= b c)))
+   (test-case "inverse matrix test 2"
+              (define a (mat 4 4 #[#[8. -5. 9. 2.] #[7. 5. 6. 1.] #[-6. 0. 9. 6.] #[-3. 0. -9. -4.]]))
+              (define b
+                (mat 4
+                     4
+                     #[#[-0.15385 -0.15385 -0.28205 -0.53846]
+                       #[-0.07692 0.12308 0.02564 0.03077]
+                       #[0.35897 0.35897 0.43590 0.92308]
+                       #[-0.69231 -0.69231 -0.76923 -1.92308]]))
+              (check-true (mat= (inverse a) b)))
+   (test-case
+    "inverse matrix test 3"
+    (define a (mat 4 4 #[#[9. 3. 0. 9.] #[-5. -2. -6. -3.] #[-4. 9. 6. 4.] #[-7. 6. 6. 2.]]))
+    (define b
+      (mat 4
+           4
+           #[#[-0.04074 -0.07778 0.14444 -0.22222]
+             #[-0.07778 0.03333 0.36667 -0.33333]
+             #[-0.02901 -0.14630 -0.10926 0.12963]
+             #[0.17778 0.06667 -0.26667 0.33333]]))
+    (check-true (mat= (inverse a) b)))
+   (test-case
+    "multiply matrix product by inverse"
+    (define a (mat 4 4 #[#[3. -9. 7. 3.] #[3. -8. 2. -9.] #[-4. 4. 4. 1.] #[-6. 5. -1. 1.]]))
+    (define b (mat 4 4 #[#[8. 2. 2. 2.] #[3. -1. 7. 0.] #[7. 0. 5. 4.] #[6. -2. 0. 5.]]))
+    (define c (mat* a b))
+    (define d (mat* c (inverse b)))
+    (check-true (mat= a d)))))
 
 (run-tests matrix-test)
 (run-tests matrix-inversion-test)

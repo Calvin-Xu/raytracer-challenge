@@ -137,4 +137,17 @@
       (error "Illegal operation: calculate cofactor out of bounds")
       ((if (even? (+ row col)) identity -) (det (submat mat row col)))))
 
+(: inverse (-> Matrix Matrix))
+(define (inverse mat)
+  (let ([m (mat-m mat)] [n (mat-n mat)] [determinant (det mat)])
+    (if (or (not (= m n)) (= 0. determinant))
+        (error "Illegal operation: matrix cannot be inverted")
+        (mat-T ((inst vector->immutable-vector (Immutable-Vectorof Float))
+                (build-vector n
+                              (lambda ([i : Exact-Nonnegative-Integer])
+                                (vector->immutable-vector
+                                 (build-vector n
+                                               (lambda ([j : Exact-Nonnegative-Integer])
+                                                 (/ (cofactor mat i j) determinant)))))))))))
+
 (provide (all-defined-out))
