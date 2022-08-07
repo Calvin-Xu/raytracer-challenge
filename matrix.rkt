@@ -124,11 +124,17 @@
     [(and (= (mat-m mat) 2) (= (mat-n mat) 2)) (det-2 mat)]
     [else
      (for/fold ([sum : Float 0.]
-                [col : Exact-Nonnegative-Integer 1]
+                [col : Exact-Nonnegative-Integer 0]
                 #:result sum)
                ([elem (in-vector (mat-row mat 0))])
        (values
-        (+ sum (* elem ((if (odd? col) identity -) (det (submat mat 0 (max 0 (sub1 col)))))))
+        (+ sum (* elem ((if (even? col) identity -) (det (submat mat 0 (max 0 col))))))
         (add1 col)))]))
+
+(: cofactor (-> Matrix Exact-Nonnegative-Integer Exact-Nonnegative-Integer Float))
+(define (cofactor mat row col)
+  (if (or (>= row (mat-m mat)) (>= col (mat-n mat)))
+      (error "Illegal operation: calculate cofactor out of bounds")
+      ((if (even? (+ row col)) identity -) (det (submat mat row col)))))
 
 (provide (all-defined-out))

@@ -86,11 +86,22 @@
               (define c (mat 4 4 #[#[-6. 1. 1. 6.] #[-8. 5. 8. 6.] #[-1. 0. 8. 2.] #[-7. 1. -1. 1.]]))
               (define d (mat 3 3 #[#[-6. 1. 6.] #[-8. 8. 6.] #[-7. -1. 1.]]))
               (check-true (mat= (submat c 2 1) d)))
+   (test-case "find cofactor"
+              (define a (mat 3 3 #[#[3. 5. 0.] #[2. -1. -7.] #[6. -1. 5.]]))
+              (check-equal? (cofactor a 0 0) -12.)
+              (check-equal? (cofactor a 1 0) -25.))
    (test-case
     "find determinant of larger matrices"
     (define a (mat 3 3 #[#[1. 2. 6.] #[-5. 8. -4.] #[2. 6. 4.]]))
+    (check-equal? (cofactor a 0 0) 56.)
+    (check-equal? (cofactor a 0 1) 12.)
+    (check-equal? (cofactor a 0 2) -46.)
     (check-equal? (det a) -196.)
     (define b (mat 4 4 #[#[-2. -8. 3. 5.] #[-3. 1. 7. 3.] #[1. 2. -9. 6.] #[-6. 7. 7. -9.]]))
+    (check-equal? (cofactor b 0 0) 690.)
+    (check-equal? (cofactor b 0 1) 447.)
+    (check-equal? (cofactor b 0 2) 210.)
+    (check-equal? (cofactor b 0 3) 51.)
     (check-equal? (det b) -4071.)
     (define c (mat 4 4 #[#[6. 4. 4. 4.] #[5. 5. 7. 6.] #[4. -9. 3. -7.] #[9. 1. 7. -6.]]))
     (check-equal? (det c) -2120.)
