@@ -34,11 +34,11 @@
 
 (: mat-col (-> Matrix Exact-Nonnegative-Integer (Immutable-Vectorof Float)))
 (define (mat-col mat n)
-  (vector->immutable-vector (for/vector: :
-                                         (Mutable-Vectorof Float)
-                                         #:length (mat-m mat)
-                                         ([row (in-vector mat)])
-                                         (vector-ref row n))))
+  (vector->immutable-vector
+   (for/vector: : (Mutable-Vectorof Float)
+                #:length (mat-m mat)
+                ([row (in-vector mat)])
+                (vector-ref row n))))
 
 (: mat= (-> Matrix Matrix Boolean))
 (define (mat= m1 m2)
@@ -92,9 +92,9 @@
   ((inst vector->immutable-vector (Immutable-Vectorof Float))
    (build-vector n
                  (lambda ([i : Exact-Nonnegative-Integer])
-                   (vector->immutable-vector (build-vector n
-                                                           (lambda ([j : Exact-Nonnegative-Integer])
-                                                             (if (= i j) 1. 0.))))))))
+                   (vector->immutable-vector
+                    (build-vector n
+                                  (lambda ([j : Exact-Nonnegative-Integer]) (if (= i j) 1. 0.))))))))
 
 (: id-mat-4 Matrix)
 (define id-mat-4
