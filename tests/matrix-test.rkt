@@ -78,16 +78,16 @@
    (test-case "find determinant of 2x2 matrix"
               (define m (mat 2 2 #[#[1. 5.] #[-3. 2.]]))
               (check-equal? (det-2 m) 17.))
-   ;; (test-case "find submatrices"
-   ;;            (define a (mat 3 3 #[#[1. 5. 0.] #[-3. 2. 7.] #[0. 6. -3.]]))
-   ;;            (define b (mat 2 2 #[#[-3. 2.] #[0. 6.]]))
-   ;;            (check-true (mat= (mat-sub a 0 2) b))
-   ;;            (define c (mat 4 4 #[#[-6. 1. 1. 6.] #[-8. 5. 8. 6.] #[-1. 0. 8. 2.] #[-7. 1. -1. 1.]]))
-   ;;            (define d (mat 3 3 #[#[-6. 1. 6.] #[-8. 8. 6.] #[-7. -1. 1.]]))
-   ;;            (check-true (mat= (mat-sub c 2 1) d)))
+   (test-case "find submatrices"
+              (define a (mat 3 3 #[#[1. 5. 0.] #[-3. 2. 7.] #[0. 6. -3.]]))
+              (define b (mat 2 2 #[#[-3. 2.] #[0. 6.]]))
+              (check-true (mat= (submat a 0 2) b))
+              (define c (mat 4 4 #[#[-6. 1. 1. 6.] #[-8. 5. 8. 6.] #[-1. 0. 8. 2.] #[-7. 1. -1. 1.]]))
+              (define d (mat 3 3 #[#[-6. 1. 6.] #[-8. 8. 6.] #[-7. -1. 1.]]))
+              (check-true (mat= (submat c 2 1) d)))
    ;; (test-case "find minor"
    ;;            (define a (mat 3 3 #[#[3. 5. 0.] #[2. -1. -7.] #[6. -1. 5.]]))
-   ;;            (define b (mat-sub a 1 0))
+   ;;            (define b (submat a 1 0))
    ;;            (check-equal? (det-2 b) 25.)
    ;;            (check-equal? (minor a 1 0) 25.))
    ;; (test-case "find cofactor"

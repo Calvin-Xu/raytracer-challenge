@@ -100,4 +100,13 @@
 (define (det-2 mat)
   (- (* (mat-entry mat 0 0) (mat-entry mat 1 1)) (* (mat-entry mat 0 1) (mat-entry mat 1 0))))
 
+(: submat (-> Matrix Exact-Nonnegative-Integer Exact-Nonnegative-Integer Matrix))
+(define (submat mat row col)
+  (let ([rows (vector-append (vector-take mat row) (vector-drop mat (add1 row)))])
+    (cast
+     (vector->immutable-vector
+      (for/vector ([y (in-vector rows)])
+        (vector->immutable-vector (vector-append (vector-take y col) (vector-drop y (add1 col))))))
+     Matrix)))
+
 (provide (all-defined-out))
