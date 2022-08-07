@@ -99,8 +99,8 @@
 (define id-mat-4
   (mat 4 4 #[#[1. 0. 0. 0.] #[0. 1. 0. 0.] #[0. 0. 1. 0.] #[0. 0. 0. 1.]]))
 
-(: mat-T (-> Matrix Matrix))
-(define (mat-T mat)
+(: transpose (-> Matrix Matrix))
+(define (transpose mat)
   ((inst vector->immutable-vector (Immutable-Vectorof Float))
    (build-vector (mat-n mat) (lambda ([y : Exact-Nonnegative-Integer]) (mat-col mat y)))))
 
@@ -140,7 +140,7 @@
   (let ([m (mat-m mat)] [n (mat-n mat)] [determinant (det mat)])
     (if (or (not (= m n)) (= 0. determinant))
         (error "Illegal operation: matrix cannot be inverted")
-        (mat-T ((inst vector->immutable-vector (Immutable-Vectorof Float))
+        (transpose ((inst vector->immutable-vector (Immutable-Vectorof Float))
                 (build-vector n
                               (lambda ([i : Exact-Nonnegative-Integer])
                                 (vector->immutable-vector

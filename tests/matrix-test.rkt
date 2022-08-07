@@ -69,9 +69,9 @@
    (test-case "transpose matrices"
               (define a (mat 4 4 #[#[0. 9. 3. 0.] #[9. 8. 0. 8.] #[1. 8. 5. 3.] #[0. 0. 5. 8.]]))
               (define b (mat 4 4 #[#[0. 9. 1. 0.] #[9. 8. 8. 0.] #[3. 0. 5. 5.] #[0. 8. 3. 8.]]))
-              (check-true (mat= (mat-T a) b))
-              (check-true (mat= (mat-T b) a))
-              (check-true (mat= (mat-T id-mat-4) id-mat-4)))))
+              (check-true (mat= (transpose a) b))
+              (check-true (mat= (transpose b) a))
+              (check-true (mat= (transpose id-mat-4) id-mat-4)))))
 
 (define matrix-inversion-test
   (test-suite
