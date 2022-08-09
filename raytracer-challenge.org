@@ -761,8 +761,8 @@ A snippet to flatten a matrix into a 1D list if I ever need it.
                         (cross* (mat-row mat1 row) (mat-col mat2 col))))
         (error "Illegal operation: multiply matrices with incompatible sizes" mat1 mat2))))
 
-(: mat-tuple* (-> Matrix Tuple Tuple))
-(define (mat-tuple* mat1 arg)
+(: mat-t* (-> Matrix Tuple Tuple))
+(define (mat-t* mat1 arg)
   (: tuple->matrix (-> Tuple Matrix))
   (define (tuple->matrix t)
     (let ([rows : (Listof Float)
@@ -772,10 +772,14 @@ A snippet to flatten a matrix into a 1D list if I ever need it.
                       ((inst list-ref Float) rows row)))))
   (: matrix->tuple (-> Matrix Tuple))
   (define (matrix->tuple m)
-    (tuple (vector-ref (vector-ref m 0) 0)
-           (vector-ref (vector-ref m 1) 0)
-           (vector-ref (vector-ref m 2) 0)
-           (vector-ref (vector-ref m 3) 0)))
+    (let ([x (mat-entry m 0 0)]
+          [y (mat-entry m 1 0)]
+          [z (mat-entry m 2 0)]
+          [w (mat-entry m 3 0)])
+      (cond
+        [(= w 0) (vec x y z)]
+        [(= w 1) (pt x y z)]
+        [else (tuple x y z w)])))
   (matrix->tuple (mat* mat1 (tuple->matrix arg))))
 #+END_SRC
 
@@ -1020,13 +1024,13 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
    (test-case "multiply matrix by vector (tuple)"
               (define a (mat 4 4 #[#[1. 2. 3. 4.] #[2. 4. 4. 2.] #[8. 6. 4. 1.] #[0. 0. 0. 1.]]))
               (define b (tuple 1. 2. 3. 1.))
-              (check-tuple= (mat-tuple* a b) (tuple 18. 24. 33. 1.)))
+              (check-tuple= (mat-t* a b) (tuple 18. 24. 33. 1.)))
    (test-case "generate identity matrix" (check-true (mat= (id-mat 4) id-mat-4)))
    (test-case "multiply identity matrix"
               (define a (mat 4 4 #[#[0. 1. 2. 4.] #[1. 2. 4. 8.] #[2. 4. 8. 16.] #[4. 8. 16. 32.]]))
               (check-true (mat= (mat* a id-mat-4) a))
               (define b (tuple 1. 2. 3. 4.))
-              (check-tuple= (mat-tuple* id-mat-4 b) b))
+              (check-tuple= (mat-t* id-mat-4 b) b))
    (test-case "transpose matrices"
               (define a (mat 4 4 #[#[0. 9. 3. 0.] #[9. 8. 0. 8.] #[1. 8. 5. 3.] #[0. 0. 5. 8.]]))
               (define b (mat 4 4 #[#[0. 9. 1. 0.] #[9. 8. 8. 0.] #[3. 0. 5. 5.] #[0. 8. 3. 8.]]))
@@ -1115,13 +1119,72 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 (run-tests matrix-inversion-test)
 #+END_SRC
 
-* Matrix Transformations
-** Translation
-** Scaling
-** Rotation
-** Shearing
-** Chaining Transformations
-** Putting It Together
+* NEXT Matrix Transformations
+:PROPERTIES:
+:ACTIVATED: [2022-08-09]
+:END:
+** TODO Translation
+
+#+NAME: translation
+#+BEGIN_SRC racket :noweb yes
+(: translation (-> Float Float Float Matrix))
+(define (translation x y z)
+  (build-matrix 4
+                4
+                (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
+                  (cond
+                    [(= row col) 1.]
+                    [(and (= row 0) (= col 3)) x]
+                    [(and (= row 1) (= col 3)) y]
+                    [(and (= row 2) (= col 3)) z]
+                    [else 0.]))))
+#+END_SRC
+
+** TODO Scaling
+** TODO Rotation
+** TODO Shearing
+** TODO Chaining Transformations
+** TODO Putting It Together
+
+#+NAME: transform
+#+BEGIN_SRC racket :noweb yes :tangle transform.rkt
+#lang typed/racket
+(provide (all-defined-out))
+(require "tuples.rkt")
+(require "matrix.rkt")
+
+<<translation>>
+#+END_SRC
+
+#+BEGIN_SRC racket :noweb yes :tangle tests/transform-test.rkt
+#lang typed/racket
+(require typed/rackunit
+         typed/rackunit/text-ui
+         "../tuples.rkt"
+         "../matrix.rkt"
+         "../transform.rkt")
+
+<<check-tuple=>>
+
+(define transform-test
+  (test-suite "Translation"
+              (test-case "Multiplying by a translation matrix"
+                         (define t (translation 5. -3. 2.))
+                         (define p (pt -3. 4. 5.))
+                         (check-tuple= (mat-t* t p) (pt 2. 1. 7.)))
+              (test-case "Multiplying by the inverse of a translation matrix"
+                         (define t (translation 5. -3. 2.))
+                         (define inv (inverse t))
+                         (define p (pt -3. 4. 5.))
+                         (check-tuple= (mat-t* inv p) (pt -8. 7. 3.)))
+              (test-case "Translation does not affect vectors"
+                         (define t (translation 5. -3. 2.))
+                         (define v (vec -3. 4. 5.))
+                         (check-tuple= (mat-t* t v) v))))
+
+(run-tests transform-test)
+#+END_SRC
+
 * Ray-Sphere Intersections
 ** Creating Rays
 ** Intersecting Rays with Spheres

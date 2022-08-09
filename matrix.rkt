@@ -76,8 +76,8 @@
                         (cross* (mat-row mat1 row) (mat-col mat2 col))))
         (error "Illegal operation: multiply matrices with incompatible sizes" mat1 mat2))))
 
-(: mat-tuple* (-> Matrix Tuple Tuple))
-(define (mat-tuple* mat1 arg)
+(: mat-t* (-> Matrix Tuple Tuple))
+(define (mat-t* mat1 arg)
   (: tuple->matrix (-> Tuple Matrix))
   (define (tuple->matrix t)
     (let ([rows : (Listof Float)
@@ -87,10 +87,14 @@
                       ((inst list-ref Float) rows row)))))
   (: matrix->tuple (-> Matrix Tuple))
   (define (matrix->tuple m)
-    (tuple (vector-ref (vector-ref m 0) 0)
-           (vector-ref (vector-ref m 1) 0)
-           (vector-ref (vector-ref m 2) 0)
-           (vector-ref (vector-ref m 3) 0)))
+    (let ([x (mat-entry m 0 0)]
+          [y (mat-entry m 1 0)]
+          [z (mat-entry m 2 0)]
+          [w (mat-entry m 3 0)])
+      (cond
+        [(= w 0) (vec x y z)]
+        [(= w 1) (pt x y z)]
+        [else (tuple x y z w)])))
   (matrix->tuple (mat* mat1 (tuple->matrix arg))))
 
 (: id-mat (-> Exact-Nonnegative-Integer Matrix))
