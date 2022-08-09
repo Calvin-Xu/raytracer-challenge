@@ -53,11 +53,12 @@
        (-> Exact-Nonnegative-Integer Exact-Nonnegative-Integer Float)
        Matrix))
 (define (build-matrix m n f)
-  ((inst vector->immutable-vector (Immutable-Vectorof Float))
-   (build-vector m
-                 (lambda ([row : Exact-Nonnegative-Integer])
-                   (vector->immutable-vector
-                    (build-vector n (lambda ([col : Exact-Nonnegative-Integer]) (f row col))))))))
+  (cast ((inst vector->immutable-vector (Immutable-Vectorof Float))
+         (build-vector
+          m
+          (lambda ([row : Exact-Nonnegative-Integer])
+            (vector->immutable-vector
+             (build-vector n (lambda ([col : Exact-Nonnegative-Integer]) (f row col))))))) Matrix))
 
 (: mat* (-> Matrix Matrix Matrix))
 (define (mat* mat1 mat2)
@@ -105,8 +106,8 @@
 
 (: transpose (-> Matrix Matrix))
 (define (transpose mat)
-  ((inst vector->immutable-vector (Immutable-Vectorof Float))
-   (build-vector (mat-n mat) (lambda ([y : Exact-Nonnegative-Integer]) (mat-col mat y)))))
+  (cast ((inst vector->immutable-vector (Immutable-Vectorof Float))
+   (build-vector (mat-n mat) (lambda ([y : Exact-Nonnegative-Integer]) (mat-col mat y)))) Matrix))
 
 (: submat (-> Matrix Exact-Nonnegative-Integer Exact-Nonnegative-Integer Matrix))
 (define (submat mat row col)
