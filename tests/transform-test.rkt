@@ -100,6 +100,13 @@
                (test-case "A shearing transformation moves z in proportion to y"
                           (define t (shear 0. 0. 0. 0. 0. 1.))
                           (define p (pt 2. 3. 4.))
-                          (check-tuple= (mat-t* t p) (pt 2. 3. 7.))))))
+                          (check-tuple= (mat-t* t p) (pt 2. 3. 7.))))
+   (test-suite "chained transformations"
+               (test-case "Chained transformations must be applied in reverse order"
+                 (define p (pt 1. 0. 1.))
+                 (define A (rotate 'x (/ pi 2)))
+                 (define B (scale 5. 5. 5.))
+                 (define C (translate 10. 5. 7.))
+                 (check-tuple= (transform p A B C) (pt 15. 0. 7.))))))
 
 (run-tests transform-test)

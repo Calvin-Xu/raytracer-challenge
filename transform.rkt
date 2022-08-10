@@ -108,3 +108,14 @@
                     [(and (= row 2) (= col 2)) 1.]
                     [(and (= row 3) (= col 3)) 1.]
                     [else 0.]))))
+
+(: transformation (-> (Listof Matrix) Matrix))
+(define (transformation transformations)
+  (: iter (-> (Listof Matrix) Matrix Matrix))
+  (define (iter remaining result)
+    (if (null? remaining) result (iter (cdr remaining) (mat* (car remaining) result))))
+  (iter transformations id-mat-4))
+
+(: transform (-> Point Matrix * Point))
+(define (transform pt . transformations)
+  (cast (mat-t* (transformation transformations) pt) Point))

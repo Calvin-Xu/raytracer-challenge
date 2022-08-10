@@ -794,10 +794,10 @@ This code (matrix tuple multiplication) is on the hot path and is seems extremel
   (: row->tuple (-> (Immutable-Vectorof Float) Tuple))
   (define (row->tuple row)
     (tuple (vector-ref row 0) (vector-ref row 1) (vector-ref row 2) (vector-ref row 3)))
-  (tuple (dot* (row->tuple (mat-row m 0)) t)
-         (dot* (row->tuple (mat-row m 1)) t)
-         (dot* (row->tuple (mat-row m 2)) t)
-         (dot* (row->tuple (mat-row m 3)) t)))
+  (let ([w (dot* (row->tuple (mat-row m 3)) t)])
+    ((if (= w 1) pt vec) (dot* (row->tuple (mat-row m 0)) t)
+                         (dot* (row->tuple (mat-row m 1)) t)
+                         (dot* (row->tuple (mat-row m 2)) t))))
 #+END_SRC
 
 ** DONE The Identity Matrix
@@ -1237,7 +1237,7 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
                        [else 0.])))]))
 #+END_SRC
 
-** TODO Shearing
+** DONE Shearing
 #+NAME: shear
 #+BEGIN_SRC racket :noweb yes
 (: shear (-> Float Float Float Float Float Float Matrix))
@@ -1263,9 +1263,22 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
                     [else 0.]))))
 #+END_SRC
 
-** TODO Chaining Transformations
-** TODO Putting It Together
+** DONE Chaining Transformations
+#+NAME: transform
+#+BEGIN_SRC racket :noweb yes
+(: transformation (-> (Listof Matrix) Matrix))
+(define (transformation transformations)
+  (: iter (-> (Listof Matrix) Matrix Matrix))
+  (define (iter remaining result)
+    (if (null? remaining) result (iter (cdr remaining) (mat* (car remaining) result))))
+  (iter transformations id-mat-4))
 
+(: transform (-> Point Matrix * Point))
+(define (transform pt . transformations)
+  (cast (mat-t* (transformation transformations) pt) Point))
+#+END_SRC
+
+** TODO Putting It Together
 #+NAME: transform
 #+BEGIN_SRC racket :noweb yes :tangle transform.rkt
 #lang typed/racket
@@ -1280,6 +1293,8 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 <<rotate>>
 
 <<shear>>
+
+<<transform>>
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes :tangle tests/transform-test.rkt
@@ -1380,7 +1395,14 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
                (test-case "A shearing transformation moves z in proportion to y"
                           (define t (shear 0. 0. 0. 0. 0. 1.))
                           (define p (pt 2. 3. 4.))
-                          (check-tuple= (mat-t* t p) (pt 2. 3. 7.))))))
+                          (check-tuple= (mat-t* t p) (pt 2. 3. 7.))))
+   (test-suite "chained transformations"
+               (test-case "Chained transformations must be applied in reverse order"
+                 (define p (pt 1. 0. 1.))
+                 (define A (rotate 'x (/ pi 2)))
+                 (define B (scale 5. 5. 5.))
+                 (define C (translate 10. 5. 7.))
+                 (check-tuple= (transform p A B C) (pt 15. 0. 7.))))))
 
 (run-tests transform-test)
 #+END_SRC
