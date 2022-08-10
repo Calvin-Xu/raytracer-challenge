@@ -62,8 +62,8 @@
 
 (: mat* (-> Matrix Matrix Matrix))
 (define (mat* mat1 mat2)
-  (: cross* (-> (Immutable-Vectorof Float) (Immutable-Vectorof Float) Float))
-  (define (cross* v1 v2)
+  (: dot* (-> (Immutable-Vectorof Float) (Immutable-Vectorof Float) Float))
+  (define (dot* v1 v2)
     (for/fold ([sum 0.]) ([x (in-vector v1)] [y (in-vector v2)])
       (+ sum (* x y))))
   (let ([m1 : Exact-Nonnegative-Integer (mat-m mat1)]
@@ -73,29 +73,23 @@
     (if (= n1 m2)
         (build-matrix m1 n2
                       (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
-                        (cross* (mat-row mat1 row) (mat-col mat2 col))))
+                        (dot* (mat-row mat1 row) (mat-col mat2 col))))
         (error "Illegal operation: multiply matrices with incompatible sizes" mat1 mat2))))
 
 (: mat-t* (-> Matrix Tuple Tuple))
-(define (mat-t* mat1 arg)
-  (: tuple->matrix (-> Tuple Matrix))
-  (define (tuple->matrix t)
-    (let ([rows : (Listof Float)
-                (list (tuple-x t) (tuple-y t) (tuple-z t) (tuple-w t))])
-      (build-matrix 4 1
-                    (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
-                      ((inst list-ref Float) rows row)))))
-  (: matrix->tuple (-> Matrix Tuple))
-  (define (matrix->tuple m)
-    (let ([x (mat-entry m 0 0)]
-          [y (mat-entry m 1 0)]
-          [z (mat-entry m 2 0)]
-          [w (mat-entry m 3 0)])
-      (cond
-        [(= w 0) (vec x y z)]
-        [(= w 1) (pt x y z)]
-        [else (tuple x y z w)])))
-  (matrix->tuple (mat* mat1 (tuple->matrix arg))))
+(define (mat-t* m t)
+  (define-syntax-rule (dot* t1 t2)
+    (+ (* (tuple-x t1) (tuple-x t2))
+       (* (tuple-y t1) (tuple-y t2))
+       (* (tuple-z t1) (tuple-z t2))
+       (* (tuple-w t1) (tuple-w t2))))
+  (: row->tuple (-> (Immutable-Vectorof Float) Tuple))
+  (define (row->tuple row)
+    (tuple (vector-ref row 0) (vector-ref row 1) (vector-ref row 2) (vector-ref row 3)))
+  (tuple (dot* (row->tuple (mat-row m 0)) t)
+         (dot* (row->tuple (mat-row m 1)) t)
+         (dot* (row->tuple (mat-row m 2)) t)
+         (dot* (row->tuple (mat-row m 3)) t)))
 
 (: id-mat (-> Exact-Nonnegative-Integer Matrix))
 (define (id-mat n)

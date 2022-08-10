@@ -13,11 +13,6 @@ My implementation will be in Typed Racket with unit tests in RackUnit. I will no
 :PROPERTIES:
 :ACTIVATED: [2022-07-30]
 :END:
-** /Refactor notes/
-Originally all the numbers had ~Real~ type; I changed them all to ~Float~ after going into Optimization Coach in Dr. Racket and saw all the red areas screaming at me. However, this brings about a really irritating problem. Say you have a function that accepts a float, but you don't want to type the parameter with a decimal point all the time (i.e., ~3~ instead of ~3.~ or ~3.0~). Is there any way you can do that? Not any I could find! perhaps some macros could work, but I don't want to go that far. As far as I can tell, when you feed a integer like ~3~ into the Typed Racket interpreter, there's no way of telling it you actually want it to be a higher type or promoting in any way. If you try to cast, it thinks you are trying to cast an ~Integer~ to ~Float~...
-
-In all the documentation I saw, people just type out the decimal point. So I guess I'll do that.
-
 ** DONE Tuples
 :PROPERTIES:
 :ACTIVATED: [2022-07-30]
@@ -747,8 +742,8 @@ A snippet to flatten a matrix into a 1D list if I ever need it.
 #+BEGIN_SRC racket :noweb yes
 (: mat* (-> Matrix Matrix Matrix))
 (define (mat* mat1 mat2)
-  (: cross* (-> (Immutable-Vectorof Float) (Immutable-Vectorof Float) Float))
-  (define (cross* v1 v2)
+  (: dot* (-> (Immutable-Vectorof Float) (Immutable-Vectorof Float) Float))
+  (define (dot* v1 v2)
     (for/fold ([sum 0.]) ([x (in-vector v1)] [y (in-vector v2)])
       (+ sum (* x y))))
   (let ([m1 : Exact-Nonnegative-Integer (mat-m mat1)]
@@ -758,11 +753,13 @@ A snippet to flatten a matrix into a 1D list if I ever need it.
     (if (= n1 m2)
         (build-matrix m1 n2
                       (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
-                        (cross* (mat-row mat1 row) (mat-col mat2 col))))
+                        (dot* (mat-row mat1 row) (mat-col mat2 col))))
         (error "Illegal operation: multiply matrices with incompatible sizes" mat1 mat2))))
+#+END_SRC
 
+#+BEGIN_SRC racket :noweb yes
 (: mat-t* (-> Matrix Tuple Tuple))
-(define (mat-t* mat1 arg)
+(define (mat-t* mat t)
   (: tuple->matrix (-> Tuple Matrix))
   (define (tuple->matrix t)
     (let ([rows : (Listof Float)
@@ -780,10 +777,28 @@ A snippet to flatten a matrix into a 1D list if I ever need it.
         [(= w 0) (vec x y z)]
         [(= w 1) (pt x y z)]
         [else (tuple x y z w)])))
-  (matrix->tuple (mat* mat1 (tuple->matrix arg))))
+  (matrix->tuple (mat* mat (tuple->matrix t))))
 #+END_SRC
 
-Note that multiplying matrix by tuples should probably be optimized...
+This code (matrix tuple multiplication) is on the hot path and is seems extremely inefficient. We will be multiplying 4x4 matrices with 4-tuples; let's just have a hard-coded version.
+
+#+NAME: mat-t*
+#+BEGIN_SRC racket :noweb yes
+(: mat-t* (-> Matrix Tuple Tuple))
+(define (mat-t* m t)
+  (define-syntax-rule (dot* t1 t2)
+    (+ (* (tuple-x t1) (tuple-x t2))
+       (* (tuple-y t1) (tuple-y t2))
+       (* (tuple-z t1) (tuple-z t2))
+       (* (tuple-w t1) (tuple-w t2))))
+  (: row->tuple (-> (Immutable-Vectorof Float) Tuple))
+  (define (row->tuple row)
+    (tuple (vector-ref row 0) (vector-ref row 1) (vector-ref row 2) (vector-ref row 3)))
+  (tuple (dot* (row->tuple (mat-row m 0)) t)
+         (dot* (row->tuple (mat-row m 1)) t)
+         (dot* (row->tuple (mat-row m 2)) t)
+         (dot* (row->tuple (mat-row m 3)) t)))
+#+END_SRC
 
 ** DONE The Identity Matrix
 #+NAME: id-mat
@@ -880,6 +895,7 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 <<matrix-base>>
 <<build-matrix>>
 <<mat*>>
+<<mat-t*>>
 <<id-mat>>
 <<id-mat-4>>
 <<transpose>>
@@ -951,6 +967,8 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 <<build-matrix>>
 
 <<mat*>>
+
+<<mat-t*>>
 
 <<id-mat>>
 
