@@ -118,4 +118,4 @@
 
 (: transform (-> Point Matrix * Point))
 (define (transform pt . transformations)
-  (cast (mat-t* (transformation transformations) pt) Point))
+  (assert (mat-t* (transformation transformations) pt) point?))

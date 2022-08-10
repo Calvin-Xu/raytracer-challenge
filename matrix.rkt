@@ -86,10 +86,11 @@
   (: row->tuple (-> (Immutable-Vectorof Float) Tuple))
   (define (row->tuple row)
     (tuple (vector-ref row 0) (vector-ref row 1) (vector-ref row 2) (vector-ref row 3)))
-  (let ([w (dot* (row->tuple (mat-row m 3)) t)])
-    ((if (= w 1) pt vec) (dot* (row->tuple (mat-row m 0)) t)
-                         (dot* (row->tuple (mat-row m 1)) t)
-                         (dot* (row->tuple (mat-row m 2)) t))))
+  (let ([x (dot* (row->tuple (mat-row m 0)) t)]
+        [y (dot* (row->tuple (mat-row m 1)) t)]
+        [z (dot* (row->tuple (mat-row m 2)) t)]
+        [w (dot* (row->tuple (mat-row m 3)) t)])
+    (if (> w 1.) (tuple x y z w) ((if (= w 1) pt vec) x y z))))
 
 (: id-mat (-> Exact-Nonnegative-Integer Matrix))
 (define (id-mat n)
