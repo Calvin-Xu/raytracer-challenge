@@ -1238,6 +1238,31 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 #+END_SRC
 
 ** TODO Shearing
+#+NAME: shear
+#+BEGIN_SRC racket :noweb yes
+(: shear (-> Float Float Float Float Float Float Matrix))
+(define (shear dx/y dx/z dy/x dy/z dz/x dz/y)
+  ;; 1    dx/y dx/z 0
+  ;; dy/x 1    dy/z 0
+  ;; dz/x dz/y 1    0
+  ;; 0    0    0    1
+  (build-matrix 4
+                4
+                (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
+                  (cond
+                    [(and (= row 0) (= col 0)) 1.]
+                    [(and (= row 0) (= col 1)) dx/y]
+                    [(and (= row 0) (= col 2)) dx/z]
+                    [(and (= row 1) (= col 0)) dy/x]
+                    [(and (= row 1) (= col 1)) 1.]
+                    [(and (= row 1) (= col 2)) dy/z]
+                    [(and (= row 2) (= col 0)) dz/x]
+                    [(and (= row 2) (= col 1)) dz/y]
+                    [(and (= row 2) (= col 2)) 1.]
+                    [(and (= row 3) (= col 3)) 1.]
+                    [else 0.]))))
+#+END_SRC
+
 ** TODO Chaining Transformations
 ** TODO Putting It Together
 
@@ -1253,6 +1278,8 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 <<scale>>
 
 <<rotate>>
+
+<<shear>>
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes :tangle tests/transform-test.rkt
@@ -1328,7 +1355,32 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
                (define full-quarter (rotate 'z (/ pi 2)))
                (check-tuple= (mat-t* half-quarter p)
                              (pt (cast (- (/ (sqrt 2) 2)) Float) (cast (/ (sqrt 2) 2) Float) 0.))
-               (check-tuple= (mat-t* full-quarter p) (pt -1. 0. 0.))))))
+               (check-tuple= (mat-t* full-quarter p) (pt -1. 0. 0.))))
+   (test-suite "shearing"
+               (test-case "A shearing transformation moves x in proportion to y"
+                          (define t (shear 1. 0. 0. 0. 0. 0.))
+                          (define p (pt 2. 3. 4.))
+                          (check-tuple= (mat-t* t p) (pt 5. 3. 4.)))
+               (test-case "A shearing transformation moves x in proportion to z"
+                          (define t (shear 0. 1. 0. 0. 0. 0.))
+                          (define p (pt 2. 3. 4.))
+                          (check-tuple= (mat-t* t p) (pt 6. 3. 4.)))
+               (test-case "A shearing transformation moves y in proportion to x"
+                          (define t (shear 0. 0. 1. 0. 0. 0.))
+                          (define p (pt 2. 3. 4.))
+                          (check-tuple= (mat-t* t p) (pt 2. 5. 4.)))
+               (test-case "A shearing transformation moves y in proportion to z"
+                          (define t (shear 0. 0. 0. 1. 0. 0.))
+                          (define p (pt 2. 3. 4.))
+                          (check-tuple= (mat-t* t p) (pt 2. 7. 4.)))
+               (test-case "A shearing transformation moves z in proportion to x"
+                          (define t (shear 0. 0. 0. 0. 1. 0.))
+                          (define p (pt 2. 3. 4.))
+                          (check-tuple= (mat-t* t p) (pt 2. 3. 6.)))
+               (test-case "A shearing transformation moves z in proportion to y"
+                          (define t (shear 0. 0. 0. 0. 0. 1.))
+                          (define p (pt 2. 3. 4.))
+                          (check-tuple= (mat-t* t p) (pt 2. 3. 7.))))))
 
 (run-tests transform-test)
 #+END_SRC

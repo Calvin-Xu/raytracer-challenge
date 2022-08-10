@@ -75,6 +75,31 @@
                (define full-quarter (rotate 'z (/ pi 2)))
                (check-tuple= (mat-t* half-quarter p)
                              (pt (cast (- (/ (sqrt 2) 2)) Float) (cast (/ (sqrt 2) 2) Float) 0.))
-               (check-tuple= (mat-t* full-quarter p) (pt -1. 0. 0.))))))
+               (check-tuple= (mat-t* full-quarter p) (pt -1. 0. 0.))))
+   (test-suite "shearing"
+               (test-case "A shearing transformation moves x in proportion to y"
+                          (define t (shear 1. 0. 0. 0. 0. 0.))
+                          (define p (pt 2. 3. 4.))
+                          (check-tuple= (mat-t* t p) (pt 5. 3. 4.)))
+               (test-case "A shearing transformation moves x in proportion to z"
+                          (define t (shear 0. 1. 0. 0. 0. 0.))
+                          (define p (pt 2. 3. 4.))
+                          (check-tuple= (mat-t* t p) (pt 6. 3. 4.)))
+               (test-case "A shearing transformation moves y in proportion to x"
+                          (define t (shear 0. 0. 1. 0. 0. 0.))
+                          (define p (pt 2. 3. 4.))
+                          (check-tuple= (mat-t* t p) (pt 2. 5. 4.)))
+               (test-case "A shearing transformation moves y in proportion to z"
+                          (define t (shear 0. 0. 0. 1. 0. 0.))
+                          (define p (pt 2. 3. 4.))
+                          (check-tuple= (mat-t* t p) (pt 2. 7. 4.)))
+               (test-case "A shearing transformation moves z in proportion to x"
+                          (define t (shear 0. 0. 0. 0. 1. 0.))
+                          (define p (pt 2. 3. 4.))
+                          (check-tuple= (mat-t* t p) (pt 2. 3. 6.)))
+               (test-case "A shearing transformation moves z in proportion to y"
+                          (define t (shear 0. 0. 0. 0. 0. 1.))
+                          (define p (pt 2. 3. 4.))
+                          (check-tuple= (mat-t* t p) (pt 2. 3. 7.))))))
 
 (run-tests transform-test)

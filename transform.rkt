@@ -86,3 +86,25 @@
                        [(and (= row 2) (= col 2)) 1.]
                        [(and (= row 3) (= col 3)) 1.]
                        [else 0.])))]))
+
+(: shear (-> Float Float Float Float Float Float Matrix))
+(define (shear dx/y dx/z dy/x dy/z dz/x dz/y)
+  ;; 1    dx/y dx/z 0
+  ;; dy/x 1    dy/z 0
+  ;; dz/x dz/y 1    0
+  ;; 0    0    0    1
+  (build-matrix 4
+                4
+                (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
+                  (cond
+                    [(and (= row 0) (= col 0)) 1.]
+                    [(and (= row 0) (= col 1)) dx/y]
+                    [(and (= row 0) (= col 2)) dx/z]
+                    [(and (= row 1) (= col 0)) dy/x]
+                    [(and (= row 1) (= col 1)) 1.]
+                    [(and (= row 1) (= col 2)) dy/z]
+                    [(and (= row 2) (= col 0)) dz/x]
+                    [(and (= row 2) (= col 1)) dz/y]
+                    [(and (= row 2) (= col 2)) 1.]
+                    [(and (= row 3) (= col 3)) 1.]
+                    [else 0.]))))
