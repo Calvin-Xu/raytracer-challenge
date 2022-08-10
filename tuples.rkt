@@ -21,6 +21,13 @@
 (define (vec? t)
   (= (tuple-w t) 0.))
 
+(: adaptive-tuple (-> Float Float Float Float Tuple))
+(define (adaptive-tuple x y z w)
+  (cond
+    [(= w 1) (pt x y z)]
+    [(= w 0) (vec x y z)]
+    [else (tuple x y z w)]))
+
 (: f= (-> Float Float Boolean))
 (define (f= a b)
   (: EPSILON Float)
@@ -73,15 +80,15 @@
 
 (: -tuple (-> Tuple Tuple))
 (define (-tuple t)
-  (tuple (- (tuple-x t)) (- (tuple-y t)) (- (tuple-z t)) (- (tuple-w t))))
+  (adaptive-tuple (- (tuple-x t)) (- (tuple-y t)) (- (tuple-z t)) (- (tuple-w t))))
 
 (: tuple* (-> Tuple Float Tuple))
 (define (tuple* t s)
-  (tuple (* (tuple-x t) s) (* (tuple-y t) s) (* (tuple-z t) s) (* (tuple-w t) s)))
+  (adaptive-tuple (* (tuple-x t) s) (* (tuple-y t) s) (* (tuple-z t) s) (* (tuple-w t) s)))
 
 (: tuple/ (-> Tuple Float Tuple))
 (define (tuple/ t s)
-  (tuple (/ (tuple-x t) s) (/ (tuple-y t) s) (/ (tuple-z t) s) (/ (tuple-w t) s)))
+  (adaptive-tuple (/ (tuple-x t) s) (/ (tuple-y t) s) (/ (tuple-z t) s) (/ (tuple-w t) s)))
 
 (: mag (-> Vector Float))
 (define (mag v)

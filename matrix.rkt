@@ -90,7 +90,7 @@
         [y (dot* (row->tuple (mat-row m 1)) t)]
         [z (dot* (row->tuple (mat-row m 2)) t)]
         [w (dot* (row->tuple (mat-row m 3)) t)])
-    (if (> w 1.) (tuple x y z w) ((if (= w 1) pt vec) x y z))))
+    (adaptive-tuple x y z w)))
 
 (: id-mat (-> Exact-Nonnegative-Integer Matrix))
 (define (id-mat n)

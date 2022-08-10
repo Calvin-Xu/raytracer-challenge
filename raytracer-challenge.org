@@ -46,6 +46,13 @@ The constructors that accept ~Real~ are written so that Typed Racket accepts num
 (: vec? (-> Tuple Boolean))
 (define (vec? t)
   (= (tuple-w t) 0.))
+
+(: adaptive-tuple (-> Float Float Float Float Tuple))
+(define (adaptive-tuple x y z w)
+  (cond
+    [(= w 1) (pt x y z)]
+    [(= w 0) (vec x y z)]
+    [else (tuple x y z w)]))
 #+END_SRC
 
 We can compare floats in ~rackunit~ with [[https://docs.racket-lang.org/rackunit/api.html#(def._((lib._rackunit/main..rkt)._check-~3d))][(check-= v1 v2 epsilon)]]:
@@ -166,7 +173,7 @@ Let's make a variadic version:
 #+BEGIN_SRC racket :noweb yes
 (: -tuple (-> Tuple Tuple))
 (define (-tuple t)
-  (tuple (- (tuple-x t)) (- (tuple-y t)) (- (tuple-z t)) (- (tuple-w t))))
+  (adaptive-tuple (- (tuple-x t)) (- (tuple-y t)) (- (tuple-z t)) (- (tuple-w t))))
 #+END_SRC
 
 *** Scalar Multiplication and Division
@@ -174,14 +181,14 @@ Let's make a variadic version:
 #+BEGIN_SRC racket :noweb yes
 (: tuple* (-> Tuple Float Tuple))
 (define (tuple* t s)
-  (tuple (* (tuple-x t) s) (* (tuple-y t) s) (* (tuple-z t) s) (* (tuple-w t) s)))
+  (adaptive-tuple (* (tuple-x t) s) (* (tuple-y t) s) (* (tuple-z t) s) (* (tuple-w t) s)))
 #+END_SRC
 
 #+NAME: tuple/
 #+BEGIN_SRC racket :noweb yes
 (: tuple/ (-> Tuple Float Tuple))
 (define (tuple/ t s)
-  (tuple (/ (tuple-x t) s) (/ (tuple-y t) s) (/ (tuple-z t) s) (/ (tuple-w t) s)))
+  (adaptive-tuple (/ (tuple-x t) s) (/ (tuple-y t) s) (/ (tuple-z t) s) (/ (tuple-w t) s)))
 #+END_SRC
 
 *** Magnitude
@@ -798,7 +805,7 @@ This code (matrix tuple multiplication) is on the hot path and is seems extremel
         [y (dot* (row->tuple (mat-row m 1)) t)]
         [z (dot* (row->tuple (mat-row m 2)) t)]
         [w (dot* (row->tuple (mat-row m 3)) t)])
-    (if (> w 1.) (tuple x y z w) ((if (= w 1) pt vec) x y z))))
+    (adaptive-tuple x y z w)))
 #+END_SRC
 
 ** DONE The Identity Matrix
