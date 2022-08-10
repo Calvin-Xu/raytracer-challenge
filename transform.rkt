@@ -5,6 +5,10 @@
 
 (: translate (-> Float Float Float Matrix))
 (define (translate x y z)
+  ;; 1 0 0 x
+  ;; 0 1 0 y
+  ;; 0 0 1 z
+  ;; 0 0 0 1
   (build-matrix 4
                 4
                 (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
@@ -17,6 +21,10 @@
 
 (: scale (-> Float Float Float Matrix))
 (define (scale x y z)
+  ;; x 0 0 0
+  ;; 0 y 0 0
+  ;; 0 0 z 0
+  ;; 0 0 0 1
   (build-matrix 4
                 4
                 (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
@@ -31,6 +39,10 @@
 (define (rotate axis rad)
   (cond
     [(eq? axis 'x)
+     ;; 1 0      0       0
+     ;; 0 cos(r) −sin(r) 0
+     ;; 0 sin(r) cos(r)  0
+     ;; 0 0      0       1
      (build-matrix 4
                    4
                    (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
@@ -43,6 +55,10 @@
                        [(and (= row 3) (= col 3)) 1.]
                        [else 0.])))]
     [(eq? axis 'y)
+     ;; cos(r)  0 sin(r) 0
+     ;; 0       1 0      0
+     ;; -sin(r) 0 cos(r) 0
+     ;; 0       0 0      1
      (build-matrix 4
                    4
                    (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
@@ -55,6 +71,10 @@
                        [(and (= row 3) (= col 3)) 1.]
                        [else 0.])))]
     [(eq? axis 'z)
+     ;; cos(r) −sin(r) 0 0
+     ;; sin(r) cos(r)  0 0
+     ;; 0      0       1 0
+     ;; 0      0       0 1
      (build-matrix 4
                    4
                    (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
