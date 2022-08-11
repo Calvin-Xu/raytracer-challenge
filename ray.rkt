@@ -18,11 +18,11 @@
          [a : Float (dot* (ray-direction ray) (ray-direction ray))]
          [b : Float (* 2 (dot* (ray-direction ray) center-to-ray))]
          [c : Float (- (dot* center-to-ray center-to-ray) 1)]
-         [discriminant : Float (- (sqr b) (* 4 a c))]
+         [discriminant : Float (- (sqr b) (* 4. a c))]
          [solution : (-> (U '+ '-) Float)
           (lambda (sign)
             (cast (/ ((if (eq? sign '-) - +) (- b) (sqrt discriminant)) (* 2 a)) Float))])
-    (if (< discriminant 0)
+    (if (< discriminant 0.)
         '()
         (list (intersection (solution '-) shape) (intersection (solution '+) shape)))))
 
@@ -35,7 +35,7 @@
     (if (null? remaining)
         (if (= (intersection-t result) +inf.0) null result)
         (iter (cdr remaining)
-              (if (and (>= (intersection-t (car remaining)) 0)
+              (if (and (>= (intersection-t (car remaining)) 0.)
                        (< (intersection-t (car remaining)) (intersection-t result)))
                   (car remaining)
                   result))))

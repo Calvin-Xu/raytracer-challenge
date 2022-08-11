@@ -52,8 +52,8 @@ The constructors that accept ~Real~ are written so that Typed Racket accepts num
 (: adaptive-tuple (-> Float Float Float Float Tuple))
 (define (adaptive-tuple x y z w)
   (cond
-    [(= w 1) (pt x y z)]
-    [(= w 0) (vec x y z)]
+    [(= w 1.) (pt x y z)]
+    [(= w 0.) (vec x y z)]
     [else (tuple x y z w)]))
 #+END_SRC
 
@@ -1494,11 +1494,11 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
          [a : Float (dot* (ray-direction ray) (ray-direction ray))]
          [b : Float (* 2 (dot* (ray-direction ray) center-to-ray))]
          [c : Float (- (dot* center-to-ray center-to-ray) 1)]
-         [discriminant : Float (- (sqr b) (* 4 a c))]
+         [discriminant : Float (- (sqr b) (* 4. a c))]
          [solution : (-> (U '+ '-) Float)
           (lambda (sign)
             (cast (/ ((if (eq? sign '-) - +) (- b) (sqrt discriminant)) (* 2 a)) Float))])
-    (if (< discriminant 0)
+    (if (< discriminant 0.)
         '()
         (list (intersection (solution '-) shape) (intersection (solution '+) shape)))))
 #+END_SRC
@@ -1518,7 +1518,7 @@ Just returning the intersection with the smallest nonnegative ~t~:
     (if (null? remaining)
         (if (= (intersection-t result) +inf.0) null result)
         (iter (cdr remaining)
-              (if (and (>= (intersection-t (car remaining)) 0)
+              (if (and (>= (intersection-t (car remaining)) 0.)
                        (< (intersection-t (car remaining)) (intersection-t result)))
                   (car remaining)
                   result))))

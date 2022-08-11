@@ -24,8 +24,8 @@
 (: adaptive-tuple (-> Float Float Float Float Tuple))
 (define (adaptive-tuple x y z w)
   (cond
-    [(= w 1) (pt x y z)]
-    [(= w 0) (vec x y z)]
+    [(= w 1.) (pt x y z)]
+    [(= w 0.) (vec x y z)]
     [else (tuple x y z w)]))
 
 (: f= (-> Float Float Boolean))
