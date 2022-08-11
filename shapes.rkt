@@ -8,3 +8,7 @@
 (: sphere (->* (String) (Matrix) Shape))
 (define (sphere id [transformation id-mat-4])
   (_sphere id transformation))
+
+(: set-transformation (-> (-> String Matrix Shape) Shape Matrix Shape))
+(define (set-transformation constructor val trans)
+  (constructor (shape-id val) trans))

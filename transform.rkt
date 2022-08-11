@@ -116,6 +116,6 @@
     (if (null? remaining) result (iter (cdr remaining) (mat* (car remaining) result))))
   (iter transformations id-mat-4))
 
-(: transform (-> Point Matrix * Point))
-(define (transform pt . transformations)
+(: transform-pt (-> Point Matrix * Point))
+(define (transform-pt pt . transformations)
   (assert (mat-t* (transformation transformations) pt) point?))

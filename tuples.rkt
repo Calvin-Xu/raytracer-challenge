@@ -56,20 +56,17 @@
 
 (: tuple- (-> Tuple Tuple Tuple))
 (define (tuple- t1 t2)
-  (let* ([xyzw : (List Float Float Float Float)
-          (list (- (tuple-x t1) (tuple-x t2))
-                (- (tuple-y t1) (tuple-y t2))
-                (- (tuple-z t1) (tuple-z t2))
-                (- (tuple-w t1) (tuple-w t2)))]
-         [xyz : (List Float Float Float)
-          (reverse (cdr (reverse xyzw)))])
+  (let* ([x (- (tuple-x t1) (tuple-x t2))]
+         [y (- (tuple-y t1) (tuple-y t2))]
+         [z (- (tuple-z t1) (tuple-z t2))]
+         [w (- (tuple-w t1) (tuple-w t2))])
 
     (cond
       [(and (vec? t1) (pt? t2) (error "Illegal operation: vector - point" t1 t2))]
-      [(and (pt? t1) (pt? t2)) (apply vec xyz)]
-      [(and (vec? t1) (vec? t2)) (apply vec xyz)]
-      [(and (pt? t1) (vec? t2)) (apply pt xyz)]
-      [else (apply tuple xyzw)])))
+      [(and (pt? t1) (pt? t2)) (vec x y z)]
+      [(and (vec? t1) (vec? t2)) (vec x y z)]
+      [(and (pt? t1) (vec? t2)) (pt x y z)]
+      [else (tuple x y z w)])))
 
 (: tuples- (-> Tuple * Tuple))
 (define (tuples- . tuples)

@@ -78,11 +78,11 @@ We should already be able to compare tuples for equality by making them ~#:prefa
 #+NAME: check-tuple=
 #+BEGIN_SRC racket :noweb yes
 (define-syntax-rule (check-tuple= t1 t2)
-  (unless (and (f= (tuple-x t1) (tuple-x t2))
-               (f= (tuple-y t1) (tuple-y t2))
-               (f= (tuple-z t1) (tuple-z t2))
-               (f= (tuple-w t1) (tuple-w t2)))
-    (printf "Failure: tuples not equal ~v, ~v\n" t1 t2)))
+    (unless (and (f= (tuple-x t1) (tuple-x t2))
+                 (f= (tuple-y t1) (tuple-y t2))
+                 (f= (tuple-z t1) (tuple-z t2))
+                 (f= (tuple-w t1) (tuple-w t2)))
+      (printf "Failure: tuples not equal ~v, ~v\n" t1 t2)))
 #+END_SRC
 
 ** DONE Operations
@@ -1278,8 +1278,8 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
     (if (null? remaining) result (iter (cdr remaining) (mat* (car remaining) result))))
   (iter transformations id-mat-4))
 
-(: transform (-> Point Matrix * Point))
-(define (transform pt . transformations)
+(: transform-pt (-> Point Matrix * Point))
+(define (transform-pt pt . transformations)
   (assert (mat-t* (transformation transformations) pt) point?))
 #+END_SRC
 
@@ -1293,7 +1293,7 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 (define c (canvas 25 25))
 (define origin (pt 0. 0. 0.))
 
-(let ([center (transform origin (translate 12. 12. 0.))])
+(let ([center (transform-pt origin (translate 12. 12. 0.))])
   (set-pixel! c
               (assert (exact-round (tuple-x center)) nonnegative-integer?)
               (assert (exact-round (tuple-y center)) nonnegative-integer?)
@@ -1302,7 +1302,7 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 (define twelve (pt 0. 1. 0.))
 
 (for ([i (in-range 1 13)])
-  (let ([hr (transform twelve (rotate 'z (cast (/ (* i pi) 6) Float)) (scale 10. 10. 10.) (translate 12. 12. 0.))])
+  (let ([hr (transform-pt twelve (rotate 'z (cast (/ (* i pi) 6) Float)) (scale 10. 10. 10.) (translate 12. 12. 0.))])
   (set-pixel! c
               (assert (exact-round (tuple-x hr)) nonnegative-integer?)
               (assert (exact-round (tuple-y hr)) nonnegative-integer?)
@@ -1434,7 +1434,7 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
                  (define A (rotate 'x (/ pi 2)))
                  (define B (scale 5. 5. 5.))
                  (define C (translate 10. 5. 7.))
-                 (check-tuple= (transform p A B C) (pt 15. 0. 7.))))))
+                 (check-tuple= (transform-pt p A B C) (pt 15. 0. 7.))))))
 
 (run-tests transform-test)
 #+END_SRC
@@ -1472,7 +1472,7 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
   (_sphere id transformation))
 #+END_SRC
 
-** DONE Tracking Intersections
+*** DONE Tracking Intersections
 :PROPERTIES:
 :ACTIVATED: [2022-08-10]
 :COMPLETED: [2022-08-10]
@@ -1486,7 +1486,8 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 #+BEGIN_SRC racket :noweb yes
 (: intersect (-> Shape Ray (Listof Intersection)))
 (define (intersect shape ray)
-  (let* ([center-to-ray : Vector (assert (tuple- (ray-origin ray) (pt 0. 0. 0.)) vect?)]
+  (let* ([ray : Ray (transform-ray ray (inverse (shape-transformation shape)))]
+         [center-to-ray : Vector (assert (tuple- (ray-origin ray) (pt 0. 0. 0.)) vect?)]
          [a : Float (dot* (ray-direction ray) (ray-direction ray))]
          [b : Float (* 2 (dot* (ray-direction ray) center-to-ray))]
          [c : Float (- (dot* center-to-ray center-to-ray) 1)]
@@ -1504,6 +1505,7 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 :ACTIVATED: [2022-08-10]
 :COMPLETED: [2022-08-10]
 :END:
+Just returning the intersection with the smallest nonnegative ~t~:
 #+NAME: hit
 #+BEGIN_SRC racket :noweb yes
 (: hit (-> (Listof Intersection) (U Intersection Null)))
@@ -1513,20 +1515,56 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
     (if (null? remaining)
         (if (= (intersection-t result) +inf.0) null result)
         (iter (cdr remaining)
-              (if (and (> (intersection-t (car remaining)) 0)
+              (if (and (>= (intersection-t (car remaining)) 0)
                        (< (intersection-t (car remaining)) (intersection-t result)))
                   (car remaining)
                   result))))
   (iter intersections (intersection +inf.0 (sphere "placeholder"))))
 #+END_SRC
 
-** TODO Transforming Rays and Spheres
+** DONE Transforming Rays and Spheres
+:PROPERTIES:
+:ACTIVATED: [2022-08-10]
+:COMPLETED: [2022-08-11]
+:END:
+Converting the ray's origin and direction in world space to in object space, by multiplying the inverse of the object's transformation matrix.
+#+NAME: transform-ray
+#+BEGIN_SRC racket :noweb yes
+(: transform-ray (-> Ray Matrix * Ray))
+(define (transform-ray r . transformations)
+  (ray (assert (mat-t* (transformation transformations) (ray-origin r)) point?)
+       (assert (mat-t* (transformation transformations) (ray-direction r)) vect?)))
+#+END_SRC
+
+Note that ~struct-copy~ is kind of broken, especially when dealing with subtypes:
+- https://stackoverflow.com/questions/52142731/how-do-you-get-struct-copy-to-create-a-struct-of-the-same-type-as-the-original
+- https://github.com/racket/typed-racket/issues/930
+- https://github.com/racket/racket/issues/1399
+
+I tried something like this:
+
+#+BEGIN_SRC racket :noweb yes
+(define-syntax (set-transformation type val trans)
+  (struct-copy type val [transformation #:parent shape trans]))
+#+END_SRC
+
+but it seems like type information is not available at marcro expansion; attempts to make it a function have also failed; in the end I opted for something really really silly:
+
+#+NAME: set-transformation
+#+BEGIN_SRC racket :noweb yes
+(: set-transformation (-> (-> String Matrix Shape) Shape Matrix Shape))
+(define (set-transformation constructor val trans)
+  (constructor (shape-id val) trans))
+#+END_SRC
+
 ** TODO Putting It Together
 #+NAME: ray-intersection
-#+BEGIN_SRC racket :noweb yes :tangle ray-intersection.rkt
+#+BEGIN_SRC racket :noweb yes :tangle ray.rkt
 #lang typed/racket
 (provide (all-defined-out))
 (require "tuples.rkt")
+(require "matrix.rkt")
+(require "transform.rkt")
 (require "shapes.rkt")
 
 <<ray-base>>
@@ -1536,6 +1574,8 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 <<intersection>>
 
 <<hit>>
+
+<<transform-ray>>
 #+END_SRC
 
 #+NAME: shapes
@@ -1545,16 +1585,18 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 (require "matrix.rkt")
 
 <<shapes-base>>
+
+<<set-transformation>>
 #+END_SRC
 
-#+BEGIN_SRC racket :noweb yes :tangle tests/ray-intersection-test.rkt
+#+BEGIN_SRC racket :noweb yes :tangle tests/ray-test.rkt
 #lang typed/racket
 (require typed/rackunit
          typed/rackunit/text-ui
          "../tuples.rkt"
          "../matrix.rkt"
          "../transform.rkt"
-         "../ray-intersection.rkt"
+         "../ray.rkt"
          "../shapes.rkt")
 
 <<check-tuple=>>
@@ -1640,7 +1682,36 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
                           (define i3 (intersection -3. s))
                           (define i4 (intersection 2. s))
                           (define xs (list i1 i2 i3 i4))
-                          (check-equal? (hit xs) i4)))))
+                          (check-equal? (hit xs) i4)))
+   (test-suite "Transforming Rays and Spheres"
+               (test-case "Translating a ray"
+                          (define r (ray (pt 1. 2. 3.) (vec 0. 1. 0.)))
+                          (define m (translate 3. 4. 5.))
+                          (define r2 (transform-ray r m))
+                          (check-equal? r2 (ray (pt 4. 6. 8.) (vec 0. 1. 0.))))
+               (test-case "Scaling a ray"
+                          (define r (ray (pt 1. 2. 3.) (vec 0. 1. 0.)))
+                          (define m (scale 2. 3. 4.))
+                          (define r2 (transform-ray r m))
+                          (check-equal? r2 (ray (pt 2. 6. 12.) (vec 0. 3. 0.))))
+               (test-case "A sphere's default transformation"
+                          (define s (sphere "s"))
+                          (check-equal? (shape-transformation s) id-mat-4))
+               (test-case "Changing (actually not) a sphere's transformation"
+                          (define s (sphere "s"))
+                          (define t (translate 2. 3. 4.))
+                          (define s2 (set-transformation Sphere s t))
+                          (check-equal? (shape-transformation s2) t))
+               (test-case "Intersecting a scaled sphere with a ray"
+                 (define r (ray (pt 0. 0. -5.) (vec 0. 0. 1.)))
+                 (define s (sphere "s" (scale 2. 2. 2.)))
+                 (define xs (intersect s r))
+                 (check-equal? xs (list (intersection 3. s) (intersection 7. s))))
+               (test-case "Intersecting a translated sphere with a ray"
+                 (define r (ray (pt 0. 0. -5.) (vec 0. 0. 1.)))
+                 (define s (sphere "s" (translate 5. 0. 0.)))
+                 (define xs (intersect s r))
+                 (check-equal? xs '())))))
 
 (run-tests ray-intersection-test)
 #+END_SRC

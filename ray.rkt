@@ -1,6 +1,8 @@
 #lang typed/racket
 (provide (all-defined-out))
 (require "tuples.rkt")
+(require "matrix.rkt")
+(require "transform.rkt")
 (require "shapes.rkt")
 
 (struct ray ([origin : Point] [direction : Vector]) #:prefab #:type-name Ray)
@@ -11,7 +13,8 @@
 
 (: intersect (-> Shape Ray (Listof Intersection)))
 (define (intersect shape ray)
-  (let* ([center-to-ray : Vector (assert (tuple- (ray-origin ray) (pt 0. 0. 0.)) vect?)]
+  (let* ([ray : Ray (transform-ray ray (inverse (shape-transformation shape)))]
+         [center-to-ray : Vector (assert (tuple- (ray-origin ray) (pt 0. 0. 0.)) vect?)]
          [a : Float (dot* (ray-direction ray) (ray-direction ray))]
          [b : Float (* 2 (dot* (ray-direction ray) center-to-ray))]
          [c : Float (- (dot* center-to-ray center-to-ray) 1)]
@@ -32,8 +35,13 @@
     (if (null? remaining)
         (if (= (intersection-t result) +inf.0) null result)
         (iter (cdr remaining)
-              (if (and (> (intersection-t (car remaining)) 0)
+              (if (and (>= (intersection-t (car remaining)) 0)
                        (< (intersection-t (car remaining)) (intersection-t result)))
                   (car remaining)
                   result))))
   (iter intersections (intersection +inf.0 (sphere "placeholder"))))
+
+(: transform-ray (-> Ray Matrix * Ray))
+(define (transform-ray r . transformations)
+  (ray (assert (mat-t* (transformation transformations) (ray-origin r)) point?)
+       (assert (mat-t* (transformation transformations) (ray-direction r)) vect?)))

@@ -4,15 +4,15 @@
          "../tuples.rkt"
          "../matrix.rkt"
          "../transform.rkt"
-         "../ray-intersection.rkt"
+         "../ray.rkt"
          "../shapes.rkt")
 
 (define-syntax-rule (check-tuple= t1 t2)
-  (unless (and (f= (tuple-x t1) (tuple-x t2))
-               (f= (tuple-y t1) (tuple-y t2))
-               (f= (tuple-z t1) (tuple-z t2))
-               (f= (tuple-w t1) (tuple-w t2)))
-    (printf "Failure: tuples not equal ~v, ~v\n" t1 t2)))
+    (unless (and (f= (tuple-x t1) (tuple-x t2))
+                 (f= (tuple-y t1) (tuple-y t2))
+                 (f= (tuple-z t1) (tuple-z t2))
+                 (f= (tuple-w t1) (tuple-w t2)))
+      (printf "Failure: tuples not equal ~v, ~v\n" t1 t2)))
 
 (define ray-intersection-test
   (test-suite
@@ -95,6 +95,35 @@
                           (define i3 (intersection -3. s))
                           (define i4 (intersection 2. s))
                           (define xs (list i1 i2 i3 i4))
-                          (check-equal? (hit xs) i4)))))
+                          (check-equal? (hit xs) i4)))
+   (test-suite "Transforming Rays and Spheres"
+               (test-case "Translating a ray"
+                          (define r (ray (pt 1. 2. 3.) (vec 0. 1. 0.)))
+                          (define m (translate 3. 4. 5.))
+                          (define r2 (transform-ray r m))
+                          (check-equal? r2 (ray (pt 4. 6. 8.) (vec 0. 1. 0.))))
+               (test-case "Scaling a ray"
+                          (define r (ray (pt 1. 2. 3.) (vec 0. 1. 0.)))
+                          (define m (scale 2. 3. 4.))
+                          (define r2 (transform-ray r m))
+                          (check-equal? r2 (ray (pt 2. 6. 12.) (vec 0. 3. 0.))))
+               (test-case "A sphere's default transformation"
+                          (define s (sphere "s"))
+                          (check-equal? (shape-transformation s) id-mat-4))
+               (test-case "Changing (actually not) a sphere's transformation"
+                          (define s (sphere "s"))
+                          (define t (translate 2. 3. 4.))
+                          (define s2 (set-transformation Sphere s t))
+                          (check-equal? (shape-transformation s2) t))
+               (test-case "Intersecting a scaled sphere with a ray"
+                 (define r (ray (pt 0. 0. -5.) (vec 0. 0. 1.)))
+                 (define s (sphere "s" (scale 2. 2. 2.)))
+                 (define xs (intersect s r))
+                 (check-equal? xs (list (intersection 3. s) (intersection 7. s))))
+               (test-case "Intersecting a translated sphere with a ray"
+                 (define r (ray (pt 0. 0. -5.) (vec 0. 0. 1.)))
+                 (define s (sphere "s" (translate 5. 0. 0.)))
+                 (define xs (intersect s r))
+                 (check-equal? xs '())))))
 
 (run-tests ray-intersection-test)

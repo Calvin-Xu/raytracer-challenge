@@ -6,11 +6,11 @@
          "../transform.rkt")
 
 (define-syntax-rule (check-tuple= t1 t2)
-  (unless (and (f= (tuple-x t1) (tuple-x t2))
-               (f= (tuple-y t1) (tuple-y t2))
-               (f= (tuple-z t1) (tuple-z t2))
-               (f= (tuple-w t1) (tuple-w t2)))
-    (printf "Failure: tuples not equal ~v, ~v\n" t1 t2)))
+    (unless (and (f= (tuple-x t1) (tuple-x t2))
+                 (f= (tuple-y t1) (tuple-y t2))
+                 (f= (tuple-z t1) (tuple-z t2))
+                 (f= (tuple-w t1) (tuple-w t2)))
+      (printf "Failure: tuples not equal ~v, ~v\n" t1 t2)))
 
 (define transform-test
   (test-suite
@@ -107,6 +107,6 @@
                  (define A (rotate 'x (/ pi 2)))
                  (define B (scale 5. 5. 5.))
                  (define C (translate 10. 5. 7.))
-                 (check-tuple= (transform p A B C) (pt 15. 0. 7.))))))
+                 (check-tuple= (transform-pt p A B C) (pt 15. 0. 7.))))))
 
 (run-tests transform-test)
