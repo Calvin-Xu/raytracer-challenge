@@ -1475,9 +1475,10 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
   (_sphere id transformation))
 #+END_SRC
 
-** NEXT Tracking Intersections
+** DONE Tracking Intersections
 :PROPERTIES:
 :ACTIVATED: [2022-08-10]
+:COMPLETED: [2022-08-10]
 :END:
 #+NAME: intersection
 #+BEGIN_SRC racket :noweb yes
@@ -1502,7 +1503,26 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
         (list (intersection (solution '-) shape) (intersection (solution '+) shape)))))
 #+END_SRC
 
-** TODO Identifying Hits
+** NEXT Identifying Hits
+:PROPERTIES:
+:ACTIVATED: [2022-08-10]
+:END:
+#+NAME: hit
+#+BEGIN_SRC racket :noweb yes
+(: hit (-> (Listof Intersection) (U Intersection Null)))
+(define (hit intersections)
+  (: iter (-> (Listof Intersection) Intersection (U Intersection Null)))
+  (define (iter remaining result)
+    (if (null? remaining)
+        (if (= (intersection-t result) +inf.0) null result)
+        (iter (cdr remaining)
+              (if (and (> (intersection-t (car remaining)) 0)
+                       (< (intersection-t (car remaining)) (intersection-t result)))
+                  (car remaining)
+                  result))))
+  (iter intersections (intersection +inf.0 (sphere "placeholder"))))
+#+END_SRC
+
 ** TODO Transforming Rays and Spheres
 ** TODO Putting It Together
 #+NAME: ray-intersection
@@ -1517,6 +1537,8 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 <<intersect>>
 
 <<intersection>>
+
+<<hit>>
 #+END_SRC
 
 #+NAME: shapes
@@ -1594,7 +1616,34 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
                           (define xs (intersect s r))
                           (check-equal? (length xs) 2)
                           (check-equal? (intersection-obj (list-ref xs 0)) s)
-                          (check-equal? (intersection-obj (list-ref xs 1)) s)))))
+                          (check-equal? (intersection-obj (list-ref xs 1)) s)))
+   (test-suite "Identifying Hits"
+               (test-case "The hit, when all intersections have positive t"
+                          (define s (sphere "s"))
+                          (define i1 (intersection 1. s))
+                          (define i2 (intersection 2. s))
+                          (define xs (list i2 i1))
+                          (check-equal? (hit xs) i1))
+               (test-case "The hit, when some intersections have negative t"
+                          (define s (sphere "s"))
+                          (define i1 (intersection -1. s))
+                          (define i2 (intersection 1. s))
+                          (define xs (list i2 i1))
+                          (check-equal? (hit xs) i2))
+               (test-case "The hit, when all intersections have negative t"
+                          (define s (sphere "s"))
+                          (define i1 (intersection -2. s))
+                          (define i2 (intersection -1. s))
+                          (define xs (list i2 i1))
+                          (check-equal? (hit xs) null))
+               (test-case "The hit is always the lowest nonnegative intersection"
+                          (define s (sphere "s"))
+                          (define i1 (intersection 5. s))
+                          (define i2 (intersection 7. s))
+                          (define i3 (intersection -3. s))
+                          (define i4 (intersection 2. s))
+                          (define xs (list i1 i2 i3 i4))
+                          (check-equal? (hit xs) i4)))))
 
 (run-tests ray-intersection-test)
 #+END_SRC

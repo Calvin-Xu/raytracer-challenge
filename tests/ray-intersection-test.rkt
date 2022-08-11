@@ -68,6 +68,33 @@
                           (define xs (intersect s r))
                           (check-equal? (length xs) 2)
                           (check-equal? (intersection-obj (list-ref xs 0)) s)
-                          (check-equal? (intersection-obj (list-ref xs 1)) s)))))
+                          (check-equal? (intersection-obj (list-ref xs 1)) s)))
+   (test-suite "Identifying Hits"
+               (test-case "The hit, when all intersections have positive t"
+                          (define s (sphere "s"))
+                          (define i1 (intersection 1. s))
+                          (define i2 (intersection 2. s))
+                          (define xs (list i2 i1))
+                          (check-equal? (hit xs) i1))
+               (test-case "The hit, when some intersections have negative t"
+                          (define s (sphere "s"))
+                          (define i1 (intersection -1. s))
+                          (define i2 (intersection 1. s))
+                          (define xs (list i2 i1))
+                          (check-equal? (hit xs) i2))
+               (test-case "The hit, when all intersections have negative t"
+                          (define s (sphere "s"))
+                          (define i1 (intersection -2. s))
+                          (define i2 (intersection -1. s))
+                          (define xs (list i2 i1))
+                          (check-equal? (hit xs) null))
+               (test-case "The hit is always the lowest nonnegative intersection"
+                          (define s (sphere "s"))
+                          (define i1 (intersection 5. s))
+                          (define i2 (intersection 7. s))
+                          (define i3 (intersection -3. s))
+                          (define i4 (intersection 2. s))
+                          (define xs (list i1 i2 i3 i4))
+                          (check-equal? (hit xs) i4)))))
 
 (run-tests ray-intersection-test)
