@@ -7,7 +7,9 @@
 Admittedly, the explanations do tend toward imperative, procedural, and object-oriented languages, but the concepts and tests themselves are translatable to any environment you wish.
 #+end_quote
 
-My implementation will be in Typed Racket with unit tests in RackUnit. I will not be using OOP features in ~typed/racket/class~ as they are still "experimental". Usage of libraries will be minimal. Low-hanging optimization gains are done, but otherwise this is a learning project.
+My implementation will be in Typed Racket with unit tests in RackUnit. I will not be using "experimental" OOP features in ~typed/racket/class~ or other libraries in general. I also wanted to check out more (Typed) Racket features in this project, instead of sticking to probably more sensible options. Low-hanging optimization gains are done, but otherwise this is a learning project.
+
+The codeblocks are mostly tangled such that there is one ~.rkt~ file corresponding to one chapter of the book. Perhaps I'll refactor them to be more reasonable in the end.
 
 * DONE Tuples, Points, and Vectors
 :PROPERTIES:
@@ -1439,9 +1441,10 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 (run-tests transform-test)
 #+END_SRC
 
-* NEXT Ray-Sphere Intersections
+* DONE Ray-Sphere Intersections
 :PROPERTIES:
 :ACTIVATED: [2022-08-10]
+:COMPLETED: [2022-08-11]
 :END:
 ** DONE Creating Rays
 :PROPERTIES:
@@ -1557,7 +1560,36 @@ but it seems like type information is not available at marcro expansion; attempt
   (constructor (shape-id val) trans))
 #+END_SRC
 
-** TODO Putting It Together
+** DONE Putting It Together
+:PROPERTIES:
+:ACTIVATED: [2022-08-11]
+:COMPLETED: [2022-08-11]
+:END:
+#+BEGIN_SRC racket :noweb yes
+(define ray-origin (pt 0. 0. -5.))
+(define wall-z 10.)
+(define wall-size 10.)
+(define half (/ wall-size 2))
+(define canvas-pixels 100)
+(define pixel-size (/ wall-size canvas-pixels))
+
+(define c (canvas canvas-pixels canvas-pixels))
+(define s (sphere "unit sphere"))
+
+(for* ([y (in-range (canvas-width c))] [x (in-range (canvas-height c))])
+  (let* ([world-y (- half (* y pixel-size))]
+         [world-x (+ (- half) (* x pixel-size))]
+         [target (pt world-x world-y wall-z)]
+         [r (ray ray-origin (norm (assert (tuple- target ray-origin) vect?)))]
+         [xs (intersect s r)])
+    (set-pixel! c
+                (assert x nonnegative-integer?)
+                (assert y nonnegative-integer?)
+                (if (null? xs) (color 1. 1. 1.) (color 1. 0. 0.)))))
+
+(save-canvas c "ray-sphere intersection.ppm")
+#+END_SRC
+
 #+NAME: ray-intersection
 #+BEGIN_SRC racket :noweb yes :tangle ray.rkt
 #lang typed/racket
