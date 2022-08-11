@@ -142,20 +142,17 @@ Let's make a variadic version:
 #+BEGIN_SRC racket :noweb yes
 (: tuple- (-> Tuple Tuple Tuple))
 (define (tuple- t1 t2)
-  (let* ([xyzw : (List Float Float Float Float)
-          (list (- (tuple-x t1) (tuple-x t2))
-                (- (tuple-y t1) (tuple-y t2))
-                (- (tuple-z t1) (tuple-z t2))
-                (- (tuple-w t1) (tuple-w t2)))]
-         [xyz : (List Float Float Float)
-          (reverse (cdr (reverse xyzw)))])
+  (let* ([x (- (tuple-x t1) (tuple-x t2))]
+         [y (- (tuple-y t1) (tuple-y t2))]
+         [z (- (tuple-z t1) (tuple-z t2))]
+         [w (- (tuple-w t1) (tuple-w t2))])
 
     (cond
       [(and (vec? t1) (pt? t2) (error "Illegal operation: vector - point" t1 t2))]
-      [(and (pt? t1) (pt? t2)) (apply vec xyz)]
-      [(and (vec? t1) (vec? t2)) (apply vec xyz)]
-      [(and (pt? t1) (vec? t2)) (apply pt xyz)]
-      [else (apply tuple xyzw)])))
+      [(and (pt? t1) (pt? t2)) (vec x y z)]
+      [(and (vec? t1) (vec? t2)) (vec x y z)]
+      [(and (pt? t1) (vec? t2)) (pt x y z)]
+      [else (tuple x y z w)])))
 #+END_SRC
 
 #+NAME: tuples-
@@ -1489,8 +1486,7 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 #+BEGIN_SRC racket :noweb yes
 (: intersect (-> Shape Ray (Listof Intersection)))
 (define (intersect shape ray)
-  (let* ([center-to-ray : Vector
-          (cast (tuple- (ray-origin ray) (pt 0. 0. 0.)) Vector)]
+  (let* ([center-to-ray : Vector (assert (tuple- (ray-origin ray) (pt 0. 0. 0.)) vect?)]
          [a : Float (dot* (ray-direction ray) (ray-direction ray))]
          [b : Float (* 2 (dot* (ray-direction ray) center-to-ray))]
          [c : Float (- (dot* center-to-ray center-to-ray) 1)]
@@ -1503,9 +1499,10 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
         (list (intersection (solution '-) shape) (intersection (solution '+) shape)))))
 #+END_SRC
 
-** NEXT Identifying Hits
+** DONE Identifying Hits
 :PROPERTIES:
 :ACTIVATED: [2022-08-10]
+:COMPLETED: [2022-08-10]
 :END:
 #+NAME: hit
 #+BEGIN_SRC racket :noweb yes

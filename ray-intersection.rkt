@@ -11,8 +11,7 @@
 
 (: intersect (-> Shape Ray (Listof Intersection)))
 (define (intersect shape ray)
-  (let* ([center-to-ray : Vector
-          (cast (tuple- (ray-origin ray) (pt 0. 0. 0.)) Vector)]
+  (let* ([center-to-ray : Vector (assert (tuple- (ray-origin ray) (pt 0. 0. 0.)) vect?)]
          [a : Float (dot* (ray-direction ray) (ray-direction ray))]
          [b : Float (* 2 (dot* (ray-direction ray) center-to-ray))]
          [c : Float (- (dot* center-to-ray center-to-ray) 1)]
