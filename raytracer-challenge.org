@@ -1273,8 +1273,8 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 ** DONE Chaining Transformations
 #+NAME: transform
 #+BEGIN_SRC racket :noweb yes
-(: transformation (-> (Listof Matrix) Matrix))
-(define (transformation transformations)
+(: transformation (-> Matrix * Matrix))
+(define (transformation . transformations)
   (: iter (-> (Listof Matrix) Matrix Matrix))
   (define (iter remaining result)
     (if (null? remaining) result (iter (cdr remaining) (mat* (car remaining) result))))
@@ -1282,7 +1282,7 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 
 (: transform-pt (-> Point Matrix * Point))
 (define (transform-pt pt . transformations)
-  (assert (mat-t* (transformation transformations) pt) point?))
+  (assert (mat-t* (apply transformation transformations) pt) point?))
 #+END_SRC
 
 ** DONE Putting It Together
@@ -1535,8 +1535,8 @@ Converting the ray's origin and direction in world space to in object space, by 
 #+BEGIN_SRC racket :noweb yes
 (: transform-ray (-> Ray Matrix * Ray))
 (define (transform-ray r . transformations)
-  (ray (assert (mat-t* (transformation transformations) (ray-origin r)) point?)
-       (assert (mat-t* (transformation transformations) (ray-direction r)) vect?)))
+  (ray (assert (mat-t* (apply transformation transformations) (ray-origin r)) point?)
+       (assert (mat-t* (apply transformation transformations) (ray-direction r)) vect?)))
 #+END_SRC
 
 Note that ~struct-copy~ is kind of broken, especially when dealing with subtypes:

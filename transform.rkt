@@ -109,8 +109,8 @@
                     [(and (= row 3) (= col 3)) 1.]
                     [else 0.]))))
 
-(: transformation (-> (Listof Matrix) Matrix))
-(define (transformation transformations)
+(: transformation (-> Matrix * Matrix))
+(define (transformation . transformations)
   (: iter (-> (Listof Matrix) Matrix Matrix))
   (define (iter remaining result)
     (if (null? remaining) result (iter (cdr remaining) (mat* (car remaining) result))))
@@ -118,4 +118,4 @@
 
 (: transform-pt (-> Point Matrix * Point))
 (define (transform-pt pt . transformations)
-  (assert (mat-t* (transformation transformations) pt) point?))
+  (assert (mat-t* (apply transformation transformations) pt) point?))

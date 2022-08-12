@@ -43,5 +43,5 @@
 
 (: transform-ray (-> Ray Matrix * Ray))
 (define (transform-ray r . transformations)
-  (ray (assert (mat-t* (transformation transformations) (ray-origin r)) point?)
-       (assert (mat-t* (transformation transformations) (ray-direction r)) vect?)))
+  (ray (assert (mat-t* (apply transformation transformations) (ray-origin r)) point?)
+       (assert (mat-t* (apply transformation transformations) (ray-direction r)) vect?)))
