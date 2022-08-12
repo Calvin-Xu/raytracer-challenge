@@ -1610,8 +1610,7 @@ but it seems like type information is not available at marcro expansion; attempt
 <<transform-ray>>
 #+END_SRC
 
-#+NAME: shapes
-#+BEGIN_SRC racket :noweb yes :tangle shapes.rkt
+#+BEGIN_SRC racket :noweb yes :tangle no
 #lang typed/racket
 (provide (all-defined-out))
 (require "matrix.rkt")
@@ -1748,10 +1747,103 @@ but it seems like type information is not available at marcro expansion; attempt
 (run-tests ray-intersection-test)
 #+END_SRC
 
-* Light and Shading
-** Reflecting Vectors
-** The Phong Reflection Model
-** Putting It Together
+* NEXT Light and Shading
+:PROPERTIES:
+:ACTIVATED: [2022-08-11]
+:END:
+- eye vector: negate ray direction
+- light vector: light source - intersection
+- surface normal
+- reflection vector: reflect across normal
+
+** DONE Surface Normals
+:PROPERTIES:
+:ACTIVATED: [2022-08-12]
+:COMPLETED: [2022-08-12]
+:END:
+
+ An excellent explanation: https://stackoverflow.com/questions/13654401/why-transform-normals-with-the-transpose-of-the-inverse-of-the-modelview-matrix
+  
+  #+NAME: normal-at
+#+BEGIN_SRC racket :noweb yes
+(: normal-at (-> Shape Point Vector))
+(define (normal-at sphere world-point)
+  (let* ([trans : Matrix (shape-transformation sphere)]
+         [obj-pt : Point (assert (mat-t* (inverse trans) world-point) point?)]
+         [obj-norm : Vector (assert (tuple- obj-pt (pt 0. 0. 0.)) vect?)]
+         [world-norm : Tuple (mat-t* (transpose (inverse trans)) obj-norm)])
+    (norm (vec (tuple-x world-norm) (tuple-y world-norm) (tuple-z world-norm)))))
+#+END_SRC
+
+Currently only handles spheres as do everything else.
+
+** TODO Reflecting Vectors
+** TODO The Phong Reflection Model
+** TODO Putting It Together
+
+#+NAME: shapes
+#+BEGIN_SRC racket :noweb yes :tangle shapes.rkt
+#lang typed/racket
+(provide (all-defined-out))
+(require "tuples.rkt")
+(require "matrix.rkt")
+
+<<shapes-base>>
+
+<<set-transformation>>
+
+<<normal-at>>
+#+END_SRC
+
+#+BEGIN_SRC racket :noweb yes :tangle tests/light-shading-test.rkt
+#lang typed/racket
+(require typed/rackunit
+         typed/rackunit/text-ui
+         "../tuples.rkt"
+         "../matrix.rkt"
+         "../transform.rkt"
+         "../ray.rkt"
+         "../shapes.rkt")
+
+<<check-tuple=>>
+
+(define light-and-shading-test
+  (test-suite
+   "Light and Shading"
+   (test-suite
+    "Surface Normals"
+    (test-case "The normal on a sphere at a point on the x axis"
+               (define s (sphere "s"))
+               (define n (normal-at s (pt 1. 0. 0.)))
+               (check-tuple= n (vec 1. 0. 0.)))
+    (test-case "The normal on a sphere at a point on the y axis"
+               (define s (sphere "s"))
+               (define n (normal-at s (pt 0. 1. 0.)))
+               (check-tuple= n (vec 0. 1. 0.)))
+    (test-case "The normal on a sphere at a point on the z axis"
+               (define s (sphere "s"))
+               (define n (normal-at s (pt 0. 0. 1.)))
+               (check-tuple= n (vec 0. 0. 1.)))
+    (test-case "The normal on a sphere at a nonaxial point"
+               (define s (sphere "s"))
+               (define n (normal-at s (pt (/ (sqrt 3) 3.) (/ (sqrt 3) 3.) (/ (sqrt 3) 3.))))
+               (check-tuple= n (vec (/ (sqrt 3) 3.) (/ (sqrt 3) 3.) (/ (sqrt 3) 3.))))
+    (test-case "The normal is a normalized vector"
+               (define s (sphere "s"))
+               (define n (normal-at s (pt 1. 0. 0.)))
+               (check-tuple= n (norm n)))
+    (test-case "Computing the normal on a translated sphere"
+               (define s (sphere "s" (translate 0. 1. 0.)))
+               (define n (normal-at s (pt 0. 1.70711 -0.70711)))
+               (check-tuple= n (vec 0. 0.70711 -0.70711)))
+    (test-case "Computing the normal on a transformed sphere"
+               (define s (sphere "s" (transformation (rotate 'z (/ pi 5)) (scale 1. 0.5 1.))))
+               (define n (normal-at s (pt 0. (/ (sqrt 2.) 2.) (- (/ (sqrt 2.) 2.)))))
+               (check-tuple= n (vec 0. 0.97014 -0.24254))))))
+
+(run-tests light-and-shading-test)
+#+END_SRC
+
 * Making a Scene
 ** Building a World
 ** Defining a View Transformation
