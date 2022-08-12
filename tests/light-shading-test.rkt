@@ -46,6 +46,17 @@
     (test-case "Computing the normal on a transformed sphere"
                (define s (sphere "s" (transformation (rotate 'z (/ pi 5)) (scale 1. 0.5 1.))))
                (define n (normal-at s (pt 0. (/ (sqrt 2.) 2.) (- (/ (sqrt 2.) 2.)))))
-               (check-tuple= n (vec 0. 0.97014 -0.24254))))))
+               (check-tuple= n (vec 0. 0.97014 -0.24254))))
+   (test-suite "Reflection Vectors"
+               (test-case "Reflection a vector approaching at 45 deg"
+                          (define v (vec 1. -1. 0.))
+                          (define n (vec 0. 1. 0.))
+                          (define r (reflect v n))
+                          (check-tuple= r (vec 1. 1. 0.)))
+               (test-case "Reflecting a vector off a slanted surface"
+                          (define v (vec 0. -1. 0.))
+                          (define n (vec (/ (sqrt 2.) 2.) (/ (sqrt 2.) 2.) 0.))
+                          (define r (reflect v n))
+                          (check-tuple= r (vec 1. 0. 0.))))))
 
 (run-tests light-and-shading-test)
