@@ -6,7 +6,9 @@
          "../matrix.rkt"
          "../transform.rkt"
          "../ray.rkt"
-         "../objects.rkt")
+         "../lighting.rkt"
+         "../material.rkt"
+         "../shapes.rkt")
 
 (define-syntax-rule (check-tuple= t1 t2)
     (unless (and (f= (tuple-x t1) (tuple-x t2))
@@ -44,10 +46,11 @@
                (define s (sphere "s" #:transformation (translate 0. 1. 0.)))
                (define n (normal-at s (pt 0. 1.70711 -0.70711)))
                (check-tuple= n (vec 0. 0.70711 -0.70711)))
-    (test-case "Computing the normal on a transformed sphere"
-               (define s (sphere "s" #:transformation (transformation (rotate 'z (/ pi 5)) (scale 1. 0.5 1.))))
-               (define n (normal-at s (pt 0. (/ (sqrt 2.) 2.) (- (/ (sqrt 2.) 2.)))))
-               (check-tuple= n (vec 0. 0.97014 -0.24254))))
+    (test-case
+     "Computing the normal on a transformed sphere"
+     (define s (sphere "s" #:transformation (transformation (rotate 'z (/ pi 5)) (scale 1. 0.5 1.))))
+     (define n (normal-at s (pt 0. (/ (sqrt 2.) 2.) (- (/ (sqrt 2.) 2.)))))
+     (check-tuple= n (vec 0. 0.97014 -0.24254))))
    (test-suite "Reflection Vectors"
                (test-case "Reflection a vector approaching at 45 deg"
                           (define v (vec 1. -1. 0.))
@@ -65,8 +68,8 @@
                (define intensity (color 1. 1. 1.))
                (define position (pt 0. 0. 0.))
                (define light (point-light position intensity))
-               (check-equal? (point-light-position light) position)
-               (check-equal? (point-light-intensity light) intensity))
+               (check-equal? (light-position light) position)
+               (check-equal? (light-intensity light) intensity))
     (test-case "The default material"
                (define m (default-material))
                (check-equal? (material-color m) (color 1. 1. 1.))
@@ -75,15 +78,36 @@
                (check-equal? (material-specular m) 0.9)
                (check-equal? (material-shininess m) 200.))
     (test-case "A sphere has a default material"
-      (define s (sphere "s"))
-      (check-equal? (shape-material s) (default-material)))
+               (define s (sphere "s"))
+               (check-equal? (shape-material s) (default-material)))
     (test-case "A sphere may be assigned a material"
-      (define s (sphere "s" #:material (default-material #:ambient 1.)))
-      (check-equal? (material-ambient (shape-material s)) 1.))
-    (test-case "Lighting with the eye between the light and the surface")
-    (test-case "Lighting with the eye between the light and the surface, eye offset 45 deg")
-    (test-case "Lighting with eye opposite surface, light offset 45 deg")
-    (test-case "Lighting with eye in the path of the reflection vector")
-    (test-case "Lighting with the light behind the surface"))))
+               (define s (sphere "s" #:material (default-material #:ambient 1.)))
+               (check-equal? (material-ambient (shape-material s)) 1.))
+    (let ([m (default-material)] [pos (pt 0. 0. 0.)])
+      (test-case "Lighting with the eye between the light and the surface"
+                 (define eyev (vec 0. 0. -1.))
+                 (define normalv (vec 0. 0. -1.))
+                 (define light (point-light (pt 0. 0. -10.) (color 1. 1. 1.)))
+                 (check-color= (lighting m light pos eyev normalv) (color 1.9 1.9 1.9)))
+      (test-case "Lighting with the eye between the light and the surface, eye offset 45 deg"
+                 (define eyev (vec 0. (/ (sqrt 2.) 2.) (- (/ (sqrt 2.) 2.))))
+                 (define normalv (vec 0. 0. -1.))
+                 (define light (point-light (pt 0. 0. -10.) (color 1. 1. 1.)))
+                 (check-color= (lighting m light pos eyev normalv) (color 1.0 1.0 1.0)))
+      (test-case "Lighting with eye opposite surface, light offset 45 deg"
+                 (define eyev (vec 0. 0. -1.))
+                 (define normalv (vec 0. 0. -1.))
+                 (define light (point-light (pt 0. 10. -10.) (color 1. 1. 1.)))
+                 (check-color= (lighting m light pos eyev normalv) (color 0.7364 0.7364 0.7364)))
+      (test-case "Lighting with eye in the path of the reflection vector"
+                 (define eyev (vec 0. (- (/ (sqrt 2.) 2.)) (- (/ (sqrt 2.) 2.))))
+                 (define normalv (vec 0. 0. -1.))
+                 (define light (point-light (pt 0. 10. -10.) (color 1. 1. 1.)))
+                 (check-color= (lighting m light pos eyev normalv) (color 1.6364 1.6364 1.6364)))
+      (test-case "Lighting with the light behind the surface"
+                 (define eyev (vec 0. 0. -1.))
+                 (define normalv (vec 0. 0. -1.))
+                 (define light (point-light (pt 0. 0. 10.) (color 1. 1. 1.)))
+                 (check-color= (lighting m light pos eyev normalv) (color 0.1 0.1 0.1)))))))
 
 (run-tests light-and-shading-test)

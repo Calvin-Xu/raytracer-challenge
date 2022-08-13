@@ -32,6 +32,10 @@
 (define (color+ c1 c2)
   (color-op + c1 c2))
 
+(: colors+ (-> Color * Color))
+(define (colors+ . colors)
+  (foldl color+ (color 0. 0. 0.) colors))
+
 (: color- (-> Color Color Color))
 (define (color- c1 c2)
   (color-op - c1 c2))
@@ -39,3 +43,7 @@
 (: color* (-> Color (U Color Float) Color))
 (define (color* c arg)
   (color-op * c (if (color? arg) arg (color arg arg arg))))
+
+(define black (color 0. 0. 0.))
+
+(define white (color 1. 1. 1.))
