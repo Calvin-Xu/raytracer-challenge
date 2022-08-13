@@ -113,16 +113,16 @@
                (test-case "Changing (actually not) a sphere's transformation"
                           (define s (sphere "s"))
                           (define t (translate 2. 3. 4.))
-                          (define s2 (set-transformation Sphere s t))
+                          (define s2 (set-transformation sphere s t))
                           (check-equal? (shape-transformation s2) t))
                (test-case "Intersecting a scaled sphere with a ray"
                  (define r (ray (pt 0. 0. -5.) (vec 0. 0. 1.)))
-                 (define s (sphere "s" (scale 2. 2. 2.)))
+                 (define s (sphere "s" #:transformation (scale 2. 2. 2.)))
                  (define xs (intersect s r))
                  (check-equal? xs (list (intersection 3. s) (intersection 7. s))))
                (test-case "Intersecting a translated sphere with a ray"
                  (define r (ray (pt 0. 0. -5.) (vec 0. 0. 1.)))
-                 (define s (sphere "s" (translate 5. 0. 0.)))
+                 (define s (sphere "s" #:transformation (translate 5. 0. 0.)))
                  (define xs (intersect s r))
                  (check-equal? xs '())))))
 

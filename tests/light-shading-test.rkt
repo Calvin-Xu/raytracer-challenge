@@ -41,11 +41,11 @@
                (define n (normal-at s (pt 1. 0. 0.)))
                (check-tuple= n (norm n)))
     (test-case "Computing the normal on a translated sphere"
-               (define s (sphere "s" (translate 0. 1. 0.)))
+               (define s (sphere "s" #:transformation (translate 0. 1. 0.)))
                (define n (normal-at s (pt 0. 1.70711 -0.70711)))
                (check-tuple= n (vec 0. 0.70711 -0.70711)))
     (test-case "Computing the normal on a transformed sphere"
-               (define s (sphere "s" (transformation (rotate 'z (/ pi 5)) (scale 1. 0.5 1.))))
+               (define s (sphere "s" #:transformation (transformation (rotate 'z (/ pi 5)) (scale 1. 0.5 1.))))
                (define n (normal-at s (pt 0. (/ (sqrt 2.) 2.) (- (/ (sqrt 2.) 2.)))))
                (check-tuple= n (vec 0. 0.97014 -0.24254))))
    (test-suite "Reflection Vectors"
@@ -67,9 +67,19 @@
                (define light (point-light position intensity))
                (check-equal? (point-light-position light) position)
                (check-equal? (point-light-intensity light) intensity))
-    (test-case "The default material")
-    (test-case "A sphere has a default material")
-    (test-case "A sphere may be assigned a material")
+    (test-case "The default material"
+               (define m (default-material))
+               (check-equal? (material-color m) (color 1. 1. 1.))
+               (check-equal? (material-ambient m) 0.1)
+               (check-equal? (material-diffuse m) 0.9)
+               (check-equal? (material-specular m) 0.9)
+               (check-equal? (material-shininess m) 200.))
+    (test-case "A sphere has a default material"
+      (define s (sphere "s"))
+      (check-equal? (shape-material s) (default-material)))
+    (test-case "A sphere may be assigned a material"
+      (define s (sphere "s" #:material (default-material #:ambient 1.)))
+      (check-equal? (material-ambient (shape-material s)) 1.))
     (test-case "Lighting with the eye between the light and the surface")
     (test-case "Lighting with the eye between the light and the surface, eye offset 45 deg")
     (test-case "Lighting with eye opposite surface, light offset 45 deg")

@@ -1477,12 +1477,12 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 :END:
 #+NAME: shapes-base
 #+BEGIN_SRC racket :noweb yes
-(struct shape ([id : String] [transformation : Matrix]) #:prefab #:type-name Shape)
+(struct shape ([id : String] [transformation : Matrix] [material : Material]) #:prefab #:type-name Shape)
 (struct _sphere shape () #:prefab #:type-name Sphere)
 
-(: sphere (->* (String) (Matrix) Shape))
-(define (sphere id [transformation id-mat-4])
-  (_sphere id transformation))
+(: sphere (->* (String) (#:transformation Matrix #:material Material) Shape))
+(define (sphere id #:transformation [transformation id-mat-4] #:material [material (default-material)])
+  (_sphere id transformation material))
 #+END_SRC
 
 *** DONE Tracking Intersections
@@ -1565,9 +1565,10 @@ but it seems like type information is not available at marcro expansion; attempt
 
 #+NAME: set-transformation
 #+BEGIN_SRC racket :noweb yes
-(: set-transformation (-> (-> String Matrix Shape) Shape Matrix Shape))
+(: set-transformation
+   (-> (->* (String) (#:transformation Matrix #:material Material) Shape) Shape Matrix Shape))
 (define (set-transformation constructor val trans)
-  (constructor (shape-id val) trans))
+  (constructor (shape-id val) #:transformation trans #:material (shape-material val)))
 #+END_SRC
 
 ** DONE Putting It Together
@@ -1741,16 +1742,16 @@ but it seems like type information is not available at marcro expansion; attempt
                (test-case "Changing (actually not) a sphere's transformation"
                           (define s (sphere "s"))
                           (define t (translate 2. 3. 4.))
-                          (define s2 (set-transformation Sphere s t))
+                          (define s2 (set-transformation sphere s t))
                           (check-equal? (shape-transformation s2) t))
                (test-case "Intersecting a scaled sphere with a ray"
                  (define r (ray (pt 0. 0. -5.) (vec 0. 0. 1.)))
-                 (define s (sphere "s" (scale 2. 2. 2.)))
+                 (define s (sphere "s" #:transformation (scale 2. 2. 2.)))
                  (define xs (intersect s r))
                  (check-equal? xs (list (intersection 3. s) (intersection 7. s))))
                (test-case "Intersecting a translated sphere with a ray"
                  (define r (ray (pt 0. 0. -5.) (vec 0. 0. 1.)))
-                 (define s (sphere "s" (translate 5. 0. 0.)))
+                 (define s (sphere "s" #:transformation (translate 5. 0. 0.)))
                  (define xs (intersect s r))
                  (check-equal? xs '())))))
 
@@ -1799,15 +1800,49 @@ Currently only handles spheres as do everything else.
   (assert (tuple- in (tuple* normal (* 2 (dot* in normal)))) vect?))
 #+END_SRC
 
-** TODO The Phong Reflection Model
+** NEXT The Phong Reflection Model
+:PROPERTIES:
+:ACTIVATED: [2022-08-12]
+:END:
+3 types of lighting:
+- ambient reflection (constant)
+- diffuse reflection (depends on the angle between the light source and the surface normal)
+- specular reflection (depends the the angle between the reflection vector and the eye vector)
+#+NAME: light
+#+BEGIN_SRC racket :noweb yes
+(struct point-light ([position : Point] [intensity : Color]) #:prefab #:type-name PointLight)
+#+END_SRC
+#+NAME: material
+#+BEGIN_SRC racket :noweb yes
+(struct material
+        ([color : Color] [ambient : Float] [diffuse : Float] [specular : Float] [shininess : Float])
+  #:prefab
+  #:type-name Material)
+
+(:
+ default-material
+ (->* () (#:color Color #:ambient Float #:diffuse Float #:specular Float #:shininess Float) Material))
+(define (default-material #:color [color (color 1. 1. 1.)]
+                          #:ambient [ambient 0.1]
+                          #:diffuse [diffuse 0.9]
+                          #:specular [specular 0.9]
+                          #:shininess [shininess 200.])
+  (material color ambient diffuse specular shininess))
+#+END_SRC
+
 ** TODO Putting It Together
 
-#+NAME: shapes
-#+BEGIN_SRC racket :noweb yes :tangle shapes.rkt
+#+NAME: objects
+#+BEGIN_SRC racket :noweb yes :tangle objects.rkt
 #lang typed/racket
 (provide (all-defined-out))
 (require "tuples.rkt")
 (require "matrix.rkt")
+(require "color.rkt")
+
+<<light>>
+
+<<material>>
 
 <<shapes-base>>
 
@@ -1823,10 +1858,11 @@ Currently only handles spheres as do everything else.
 (require typed/rackunit
          typed/rackunit/text-ui
          "../tuples.rkt"
+         "../color.rkt"
          "../matrix.rkt"
          "../transform.rkt"
          "../ray.rkt"
-         "../shapes.rkt")
+         "../objects.rkt")
 
 <<check-tuple=>>
 
@@ -1856,11 +1892,11 @@ Currently only handles spheres as do everything else.
                (define n (normal-at s (pt 1. 0. 0.)))
                (check-tuple= n (norm n)))
     (test-case "Computing the normal on a translated sphere"
-               (define s (sphere "s" (translate 0. 1. 0.)))
+               (define s (sphere "s" #:transformation (translate 0. 1. 0.)))
                (define n (normal-at s (pt 0. 1.70711 -0.70711)))
                (check-tuple= n (vec 0. 0.70711 -0.70711)))
     (test-case "Computing the normal on a transformed sphere"
-               (define s (sphere "s" (transformation (rotate 'z (/ pi 5)) (scale 1. 0.5 1.))))
+               (define s (sphere "s" #:transformation (transformation (rotate 'z (/ pi 5)) (scale 1. 0.5 1.))))
                (define n (normal-at s (pt 0. (/ (sqrt 2.) 2.) (- (/ (sqrt 2.) 2.)))))
                (check-tuple= n (vec 0. 0.97014 -0.24254))))
    (test-suite "Reflection Vectors"
@@ -1873,7 +1909,33 @@ Currently only handles spheres as do everything else.
                           (define v (vec 0. -1. 0.))
                           (define n (vec (/ (sqrt 2.) 2.) (/ (sqrt 2.) 2.) 0.))
                           (define r (reflect v n))
-                          (check-tuple= r (vec 1. 0. 0.))))))
+                          (check-tuple= r (vec 1. 0. 0.))))
+   (test-suite
+    "The Phong Reflection Model"
+    (test-case "A point light has a position and intensity"
+               (define intensity (color 1. 1. 1.))
+               (define position (pt 0. 0. 0.))
+               (define light (point-light position intensity))
+               (check-equal? (point-light-position light) position)
+               (check-equal? (point-light-intensity light) intensity))
+    (test-case "The default material"
+               (define m (default-material))
+               (check-equal? (material-color m) (color 1. 1. 1.))
+               (check-equal? (material-ambient m) 0.1)
+               (check-equal? (material-diffuse m) 0.9)
+               (check-equal? (material-specular m) 0.9)
+               (check-equal? (material-shininess m) 200.))
+    (test-case "A sphere has a default material"
+      (define s (sphere "s"))
+      (check-equal? (shape-material s) (default-material)))
+    (test-case "A sphere may be assigned a material"
+      (define s (sphere "s" #:material (default-material #:ambient 1.)))
+      (check-equal? (material-ambient (shape-material s)) 1.))
+    (test-case "Lighting with the eye between the light and the surface")
+    (test-case "Lighting with the eye between the light and the surface, eye offset 45 deg")
+    (test-case "Lighting with eye opposite surface, light offset 45 deg")
+    (test-case "Lighting with eye in the path of the reflection vector")
+    (test-case "Lighting with the light behind the surface"))))
 
 (run-tests light-and-shading-test)
 #+END_SRC
