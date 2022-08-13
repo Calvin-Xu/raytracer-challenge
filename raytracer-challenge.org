@@ -593,8 +593,8 @@ The following is very bad because I couldn't figure out a functional way of doin
 (iter e p c 0)
 #+END_SRC
 
-#+NAME: canvas
-#+BEGIN_SRC racket :noweb yes :tangle canvas.rkt
+#+NAME: color
+#+BEGIN_SRC racket :noweb yes :tangle color.rkt
 #lang typed/racket
 (provide (except-out (all-defined-out) color-op))
 (require "tuples.rkt")
@@ -604,6 +604,14 @@ The following is very bad because I couldn't figure out a functional way of doin
 <<check-color=>>
 
 <<color-ops>>
+#+END_SRC
+
+#+NAME: canvas
+#+BEGIN_SRC racket :noweb yes :tangle canvas.rkt
+#lang typed/racket
+(provide (all-defined-out))
+(require "tuples.rkt")
+(require "color.rkt")
 
 <<canvas-base>>
 
@@ -615,6 +623,7 @@ The following is very bad because I couldn't figure out a functional way of doin
 (require typed/rackunit
          typed/rackunit/text-ui
          "../tuples.rkt"
+         "../color.rkt"
          "../canvas.rkt")
 
 <<check-tuple=>>
@@ -1289,6 +1298,7 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 #+BEGIN_SRC racket :noweb yes
 #lang typed/racket
 (require "tuples.rkt")
+(require "color.rkt")
 (require "canvas.rkt")
 (require "matrix.rkt")
 
@@ -1597,7 +1607,7 @@ but it seems like type information is not available at marcro expansion; attempt
 (require "tuples.rkt")
 (require "matrix.rkt")
 (require "transform.rkt")
-(require "shapes.rkt")
+(require "objects.rkt")
 
 <<ray-base>>
 
@@ -1628,7 +1638,7 @@ but it seems like type information is not available at marcro expansion; attempt
          "../matrix.rkt"
          "../transform.rkt"
          "../ray.rkt"
-         "../shapes.rkt")
+         "../objects.rkt")
 
 <<check-tuple=>>
 

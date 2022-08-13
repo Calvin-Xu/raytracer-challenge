@@ -2,6 +2,7 @@
 (require typed/rackunit
          typed/rackunit/text-ui
          "../tuples.rkt"
+         "../color.rkt"
          "../canvas.rkt")
 
 (define-syntax-rule (check-tuple= t1 t2)

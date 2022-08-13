@@ -2,10 +2,11 @@
 (require typed/rackunit
          typed/rackunit/text-ui
          "../tuples.rkt"
+         "../color.rkt"
          "../matrix.rkt"
          "../transform.rkt"
          "../ray.rkt"
-         "../shapes.rkt")
+         "../objects.rkt")
 
 (define-syntax-rule (check-tuple= t1 t2)
     (unless (and (f= (tuple-x t1) (tuple-x t2))
@@ -57,6 +58,22 @@
                           (define v (vec 0. -1. 0.))
                           (define n (vec (/ (sqrt 2.) 2.) (/ (sqrt 2.) 2.) 0.))
                           (define r (reflect v n))
-                          (check-tuple= r (vec 1. 0. 0.))))))
+                          (check-tuple= r (vec 1. 0. 0.))))
+   (test-suite
+    "The Phong Reflection Model"
+    (test-case "A point light has a position and intensity"
+               (define intensity (color 1. 1. 1.))
+               (define position (pt 0. 0. 0.))
+               (define light (point-light position intensity))
+               (check-equal? (point-light-position light) position)
+               (check-equal? (point-light-intensity light) intensity))
+    (test-case "The default material")
+    (test-case "A sphere has a default material")
+    (test-case "A sphere may be assigned a material")
+    (test-case "Lighting with the eye between the light and the surface")
+    (test-case "Lighting with the eye between the light and the surface, eye offset 45 deg")
+    (test-case "Lighting with eye opposite surface, light offset 45 deg")
+    (test-case "Lighting with eye in the path of the reflection vector")
+    (test-case "Lighting with the light behind the surface"))))
 
 (run-tests light-and-shading-test)

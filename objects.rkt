@@ -2,6 +2,9 @@
 (provide (all-defined-out))
 (require "tuples.rkt")
 (require "matrix.rkt")
+(require "color.rkt")
+
+(struct point-light ([position : Point] [intensity : Color]) #:prefab #:type-name PointLight)
 
 (struct shape ([id : String] [transformation : Matrix]) #:prefab #:type-name Shape)
 (struct _sphere shape () #:prefab #:type-name Sphere)

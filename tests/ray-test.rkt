@@ -5,7 +5,7 @@
          "../matrix.rkt"
          "../transform.rkt"
          "../ray.rkt"
-         "../shapes.rkt")
+         "../objects.rkt")
 
 (define-syntax-rule (check-tuple= t1 t2)
     (unless (and (f= (tuple-x t1) (tuple-x t2))
