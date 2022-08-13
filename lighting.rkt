@@ -6,7 +6,7 @@
 (require "material.rkt")
 (require "shapes.rkt")
 
-(struct light ([position : Point] [intensity : Color]) #:prefab #:type-name Light)
+(struct light ([id : String] [position : Point] [intensity : Color]) #:prefab #:type-name Light)
 (struct point-light light () #:prefab #:type-name PointLight)
 
 (: reflect (-> Vector Vector Vector))
@@ -23,44 +23,26 @@
 
 (: lighting (-> Material PointLight Point Vector Vector Color))
 (define (lighting material light point eyev normalv)
-  (let* ([blended
-          :
-          Color
+  (let* ([blended : Color
           (color* (material-color material) (light-intensity light))]
-         [ambient
-          :
-          Color
+         [ambient : Color
           (color* blended (material-ambient material))]
-         [lightv
-          :
-          Vector
+         [lightv : Vector
           (norm (assert (tuple- (light-position light) point) vect?))]
-         [*light-normal
-          :
-          Float
-          (dot* lightv normalv)]
-         [diffuse
-          :
-          Color
-          (if (< *light-normal 0)
+         [*light-normal : Float (dot* lightv normalv)]
+         [diffuse : Color
+          (if (< *light-normal 0.)
               black
               (color* blended (* (material-diffuse material) *light-normal)))]
-         [specular
-          :
-          Color
-          (if (< *light-normal 0)
+         [specular : Color
+          (if (< *light-normal 0.)
               black
-              (let* ([reflectv
-                      :
-                      Vector
+              (let* ([reflectv : Vector
                       (reflect (assert (-tuple lightv) vect?) normalv)]
-                     [*reflect-eye
-                      :
-                      Float
-                      (dot* reflectv eyev)])
-                (if (< *reflect-eye 0)
+                     [*reflect-eye : Float (dot* reflectv eyev)])
+                (if (< *reflect-eye 0.)
                     black
                     (color* (light-intensity light)
                             (* (material-specular material)
-                               (expt *reflect-eye (material-shininess material)))))))])
+                               (cast (expt *reflect-eye (material-shininess material)) Float))))))])
     (colors+ ambient diffuse specular)))

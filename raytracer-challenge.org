@@ -1770,9 +1770,10 @@ but it seems like type information is not available at marcro expansion; attempt
 (run-tests ray-intersection-test)
 #+END_SRC
 
-* NEXT Light and Shading
+* DONE Light and Shading
 :PROPERTIES:
 :ACTIVATED: [2022-08-11]
+:COMPLETED: [2022-08-13]
 :END:
 - eye vector: negate ray direction
 - light vector: light source - intersection
@@ -1858,16 +1859,16 @@ Currently only handles spheres as do everything else.
           (norm (assert (tuple- (light-position light) point) vect?))]
          [*light-normal : Float (dot* lightv normalv)]
          [diffuse : Color
-          (if (< *light-normal 0)
+          (if (< *light-normal 0.)
               black
               (color* blended (* (material-diffuse material) *light-normal)))]
          [specular : Color
-          (if (< *light-normal 0)
+          (if (< *light-normal 0.)
               black
               (let* ([reflectv : Vector
                       (reflect (assert (-tuple lightv) vect?) normalv)]
                      [*reflect-eye : Float (dot* reflectv eyev)])
-                (if (< *reflect-eye 0)
+                (if (< *reflect-eye 0.)
                     black
                     (color* (light-intensity light)
                             (* (material-specular material)
@@ -1875,7 +1876,43 @@ Currently only handles spheres as do everything else.
     (colors+ ambient diffuse specular)))
 #+END_SRC
 
-** TODO Putting It Together
+** DONE Putting It Together
+:PROPERTIES:
+:ACTIVATED: [2022-08-13]
+:COMPLETED: [2022-08-13]
+:END:
+#+BEGIN_SRC racket :noweb yes
+(define ray-origin (pt 0. 0. -5.))
+(define wall-z 10.)
+(define wall-size 10.)
+(define half (/ wall-size 2))
+(define canvas-pixels 200)
+(define pixel-size (/ wall-size canvas-pixels))
+
+(define c (canvas canvas-pixels canvas-pixels))
+(define s (sphere "unit sphere" #:material (default-material #:color (color 1. 0. 0.))))
+(define light (point-light (pt -10. 10. -10.) (color 1. 1. 1.)))
+
+(for* ([y : Integer (in-range (canvas-width c))] [x : Integer (in-range (canvas-height c))])
+  (let* ([world-y : Float (- half (* (exact->inexact y) pixel-size))]
+         [world-x : Float (+ (- half) (* (exact->inexact x) pixel-size))]
+         [target (pt world-x world-y wall-z)]
+         [r (ray ray-origin (norm (assert (tuple- target ray-origin) vect?)))]
+         [xs (intersect s r)]
+         [hit (hit xs)])
+    (set-pixel! c
+                (assert x nonnegative-integer?)
+                (assert y nonnegative-integer?)
+                (if (or (null? xs) (null? hit))
+                    (color 1. 1. 1.)
+                    (let* ([point (pos r (intersection-t hit))]
+                           [object (intersection-obj hit)]
+                           [normal (normal-at object point)]
+                           [eye (assert (-tuple (ray-direction r)) vect?)])
+                      (lighting (shape-material object) light point eye normal))))))
+
+(save-canvas c "ray-sphere intersection.ppm")
+#+END_SRC
 
 #+NAME: material
 #+BEGIN_SRC racket :noweb yes :tangle material.rkt
