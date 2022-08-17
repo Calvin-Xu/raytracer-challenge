@@ -1,4 +1,6 @@
 #lang typed/racket
+(display
+ "Warning: the mutable implementation of canvas has been deprecated; using canvas-immutable.rkt is strongly recommended\n")
 (provide (all-defined-out))
 (require "tuples.rkt")
 (require "color.rkt")

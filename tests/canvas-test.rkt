@@ -3,7 +3,8 @@
          typed/rackunit/text-ui
          "../tuples.rkt"
          "../color.rkt"
-         "../canvas.rkt")
+         ;; "../canvas.rkt"
+         "../canvas-immutable.rkt")
 
 (define-syntax-rule (check-tuple= t1 t2)
     (unless (and (f= (tuple-x t1) (tuple-x t2))
@@ -37,21 +38,33 @@
    (test-case "color to string"
               (define c (color 0.2 0.3 0.4))
               (check-equal? (color->string c) "51 76 102 "))
-   (test-case "create and access canvas"
-              (define c (canvas 10 20))
+   ;; (test-case "(deprecated) create and access mutable canvas"
+   ;;            (define c (canvas 10 20))
+   ;;            (check-equal? (canvas-width c) 10)
+   ;;            (check-equal? (canvas-height c) 20)
+   ;;            (define red (color 1. 0. 0.))
+   ;;            (set-pixel! c 2 3 red)
+   ;;            (check-equal? (pixel-at c 2 3) red))
+   (test-case "create and access immutable canvas"
+              (define c (build-canvas 10 20 (lambda (x y) (if (= x y) black white))))
               (check-equal? (canvas-width c) 10)
               (check-equal? (canvas-height c) 20)
-              (define red (color 1. 0. 0.))
-              (set-pixel! c 2 3 red)
-              (check-equal? (pixel-at c 2 3) red))
+              (check-equal? (pixel-at c 9 9) black)
+              (check-equal? (pixel-at c 9 10) white))
+   ;; (test-case
+   ;;  "(deprecated) save canvas to ppm file"
+   ;;  (define c (canvas 5 3))
+   ;;  (set-pixel! c 0 0 (color 1.5 0. 0.))
+   ;;  (set-pixel! c 2 1 (color 0. 0.5 0.))
+   ;;  (set-pixel! c 4 2 (color -0.5 0. 1.))
+   ;;  (check-equal?
+   ;;   (serialize-canvas c)
+   ;;   "P3\n5 3\n255\n255 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\n0 0 0 0 128 0 0 0 0 0 0 0 0 0 0 0 0 0\n0 0 0 0 0 0 0 0 255\n"))
    (test-case
     "save canvas to ppm file"
-    (define c (canvas 5 3))
-    (set-pixel! c 0 0 (color 1.5 0. 0.))
-    (set-pixel! c 2 1 (color 0. 0.5 0.))
-    (set-pixel! c 4 2 (color -0.5 0. 1.))
+    (save-canvas (build-canvas 5 10 (lambda (x y) (if (= x y) black white))) "test.ppm")
     (check-equal?
-     (serialize-canvas c)
-     "P3\n5 3\n255\n255 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\n0 0 0 0 128 0 0 0 0 0 0 0 0 0 0 0 0 0\n0 0 0 0 0 0 0 0 255\n"))))
+     (file->string "test.ppm")
+     "P3\n5 10\n255\n0 0 0 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255\n0 0 0 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255\n0 0 0 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255\n0 0 0 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255\n0 0 0 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255\n255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255\n255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255\n255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255\n255 255 255 255 255 255 "))))
 
 (run-tests canvas-test)
