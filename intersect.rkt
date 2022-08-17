@@ -1,11 +1,13 @@
 #lang typed/racket
 (provide (all-defined-out))
 (require "tuples.rkt")
+(require "color.rkt")
 (require "matrix.rkt")
 (require "transform.rkt")
 (require "ray.rkt")
 (require "shapes.rkt")
 (require "world.rkt")
+(require "lighting.rkt")
 
 (struct intersection ([t : Float] [obj : Shape]) #:prefab #:type-name Intersection)
 
@@ -43,3 +45,44 @@
              #:result ((inst sort Intersection) intersections #:key intersection-t <=))
             ([obj (in-hash-values (world-objects world))])
     (append intersections (intersect obj ray))))
+
+(struct intersection-data
+        ([t : Float] [object : Shape]
+                     [point : Point]
+                     [eyev : Vector]
+                     [normalv : Vector]
+                     [inside : Boolean])
+  #:prefab
+  #:type-name IntersectionData)
+
+(: precomp (-> Intersection Ray IntersectionData))
+(define (precomp intersection ray)
+  (let* ([t (intersection-t intersection)]
+         [object (intersection-obj intersection)]
+         [point (pos ray t)]
+         [eyev (assert (-tuple (ray-direction ray)) vect?)]
+         [normalv (normal-at object point)]
+         [-normalv (assert (-tuple normalv) vect?)]
+         [inside (if (< (dot* normalv eyev) 0.) #t #f)])
+    (intersection-data t object point eyev (if inside -normalv normalv) inside)))
+
+(: shade (-> World IntersectionData Color))
+(define (shade world comps)
+  (let ([per-light-shading : (Listof Color)
+         (for/list ([light : Light (in-hash-values (world-lights world))])
+           (lighting (shape-material (intersection-data-object comps))
+                     light
+                     (intersection-data-point comps)
+                     (intersection-data-eyev comps)
+                     (intersection-data-normalv comps)))])
+    (apply colors+ per-light-shading)))
+
+(: shade-ray (-> World Ray Color))
+(define (shade-ray world ray)
+  (let* ([intersections : (Listof Intersection) (intersect-world world ray)]
+         [hit : (U Intersection Null) (hit intersections)])
+    (if (null? hit)
+        black
+        (let* ([precomp : IntersectionData (precomp hit ray)]
+               [shade : Color (shade world precomp)])
+          shade))))

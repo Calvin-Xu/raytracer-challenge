@@ -21,7 +21,7 @@
          [world-norm : Tuple (mat-t* (transpose (inverse trans)) obj-norm)])
     (norm (vec (tuple-x world-norm) (tuple-y world-norm) (tuple-z world-norm)))))
 
-(: lighting (-> Material PointLight Point Vector Vector Color))
+(: lighting (-> Material Light Point Vector Vector Color))
 (define (lighting material light point eyev normalv)
   (let* ([blended : Color
           (color* (material-color material) (light-intensity light))]

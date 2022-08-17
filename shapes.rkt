@@ -16,3 +16,8 @@
    (-> (->* (String) (#:transformation Matrix #:material Material) Shape) Shape Matrix Shape))
 (define (set-transformation constructor val trans)
   (constructor (shape-id val) #:transformation trans #:material (shape-material val)))
+
+(: set-material
+   (-> (->* (String) (#:transformation Matrix #:material Material) Shape) Shape Material Shape))
+(define (set-material constructor val material)
+  (constructor (shape-id val) #:transformation (shape-transformation val) #:material material))
