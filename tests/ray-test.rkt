@@ -5,6 +5,7 @@
          "../matrix.rkt"
          "../transform.rkt"
          "../ray.rkt"
+         "../intersect.rkt"
          "../shapes.rkt")
 
 (define-syntax-rule (check-tuple= t1 t2)

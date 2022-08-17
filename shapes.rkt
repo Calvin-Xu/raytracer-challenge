@@ -9,7 +9,7 @@
 (struct _sphere shape () #:prefab #:type-name Sphere)
 
 (: sphere (->* (String) (#:transformation Matrix #:material Material) Shape))
-(define (sphere id #:transformation [transformation id-mat-4] #:material [material (default-material)])
+(define (sphere id #:transformation [transformation id-mat-4] #:material [material (make-material)])
   (_sphere id transformation material))
 
 (: set-transformation

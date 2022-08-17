@@ -563,6 +563,9 @@ The following is very bad because I couldn't figure out a functional way of doin
 #+RESULTS:
 : "P3\n5 3\n255\n255 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\n0 0 0 0 128 0 0 0 0 0 0 0 0 0 0 0 0 0\n0 0 0 0 0 0 0 0 255\n"
 
+** TODO Refactor to use immutable datastructure & incremental export
+New canvas should be an immutable 2D vector that is created by the drawing code using a ~build-canvas~ procedure. Saving the Canvas should try to not hold the entire ppm string representation in memory, and write to file incrementally.
+
 ** DONE Putting It Together
 #+BEGIN_SRC racket :noweb yes
 <<tuples>>
@@ -1493,7 +1496,7 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 (struct _sphere shape () #:prefab #:type-name Sphere)
 
 (: sphere (->* (String) (#:transformation Matrix #:material Material) Shape))
-(define (sphere id #:transformation [transformation id-mat-4] #:material [material (default-material)])
+(define (sphere id #:transformation [transformation id-mat-4] #:material [material (make-material)])
   (_sphere id transformation material))
 #+END_SRC
 
@@ -1507,6 +1510,7 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 (struct intersection ([t : Float] [obj : Shape]) #:prefab #:type-name Intersection)
 #+END_SRC
 
+Refactored in [[*Building a World]]
 #+NAME: intersect
 #+BEGIN_SRC racket :noweb yes
 (: intersect (-> Shape Ray (Listof Intersection)))
@@ -1613,7 +1617,7 @@ but it seems like type information is not available at marcro expansion; attempt
 (save-canvas c "ray-sphere intersection.ppm")
 #+END_SRC
 
-#+NAME: ray-intersection
+#+NAME: ray
 #+BEGIN_SRC racket :noweb yes :tangle ray.rkt
 #lang typed/racket
 (provide (all-defined-out))
@@ -1624,13 +1628,24 @@ but it seems like type information is not available at marcro expansion; attempt
 
 <<ray-base>>
 
+<<transform-ray>>
+#+END_SRC
+
+#+NAME: intersect
+#+BEGIN_SRC racket :noweb yes :tangle no
+#lang typed/racket
+(provide (all-defined-out))
+(require "tuples.rkt")
+(require "matrix.rkt")
+(require "transform.rkt")
+(require "ray.rkt")
+(require "shapes.rkt")
+
 <<intersect>>
 
 <<intersection>>
 
 <<hit>>
-
-<<transform-ray>>
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes :tangle no
@@ -1651,6 +1666,7 @@ but it seems like type information is not available at marcro expansion; attempt
          "../matrix.rkt"
          "../transform.rkt"
          "../ray.rkt"
+         "../intersect.rkt"
          "../shapes.rkt")
 
 <<check-tuple=>>
@@ -1825,7 +1841,7 @@ Currently only handles spheres as do everything else.
 
 #+NAME: light
 #+BEGIN_SRC racket :noweb yes
-(struct light ([position : Point] [intensity : Color]) #:prefab #:type-name Light)
+(struct light ([id : String] [position : Point] [intensity : Color]) #:prefab #:type-name Light)
 (struct point-light light () #:prefab #:type-name PointLight)
 #+END_SRC
 
@@ -1837,9 +1853,9 @@ Currently only handles spheres as do everything else.
   #:type-name Material)
 
 (:
- default-material
+ make-material
  (->* () (#:color Color #:ambient Float #:diffuse Float #:specular Float #:shininess Float) Material))
-(define (default-material #:color [color (color 1. 1. 1.)]
+(define (make-material #:color [color (color 1. 1. 1.)]
                           #:ambient [ambient 0.1]
                           #:diffuse [diffuse 0.9]
                           #:specular [specular 0.9]
@@ -1872,7 +1888,7 @@ Currently only handles spheres as do everything else.
                     black
                     (color* (light-intensity light)
                             (* (material-specular material)
-                               (expt *reflect-eye (material-shininess material)))))))])
+                               (cast (expt *reflect-eye (material-shininess material)) Float))))))])
     (colors+ ambient diffuse specular)))
 #+END_SRC
 
@@ -1890,7 +1906,7 @@ Currently only handles spheres as do everything else.
 (define pixel-size (/ wall-size canvas-pixels))
 
 (define c (canvas canvas-pixels canvas-pixels))
-(define s (sphere "unit sphere" #:material (default-material #:color (color 1. 0. 0.))))
+(define s (sphere "unit sphere" #:material (make-material #:color (color 1. 0. 0.))))
 (define light (point-light (pt -10. 10. -10.) (color 1. 1. 1.)))
 
 (for* ([y : Integer (in-range (canvas-width c))] [x : Integer (in-range (canvas-height c))])
@@ -1965,6 +1981,7 @@ Currently only handles spheres as do everything else.
          "../matrix.rkt"
          "../transform.rkt"
          "../ray.rkt"
+         "../intersect.rkt"
          "../lighting.rkt"
          "../material.rkt"
          "../shapes.rkt")
@@ -2021,11 +2038,11 @@ Currently only handles spheres as do everything else.
     (test-case "A point light has a position and intensity"
                (define intensity (color 1. 1. 1.))
                (define position (pt 0. 0. 0.))
-               (define light (point-light position intensity))
+               (define light (point-light "l" position intensity))
                (check-equal? (light-position light) position)
                (check-equal? (light-intensity light) intensity))
     (test-case "The default material"
-               (define m (default-material))
+               (define m (make-material))
                (check-equal? (material-color m) (color 1. 1. 1.))
                (check-equal? (material-ambient m) 0.1)
                (check-equal? (material-diffuse m) 0.9)
@@ -2033,45 +2050,196 @@ Currently only handles spheres as do everything else.
                (check-equal? (material-shininess m) 200.))
     (test-case "A sphere has a default material"
                (define s (sphere "s"))
-               (check-equal? (shape-material s) (default-material)))
+               (check-equal? (shape-material s) (make-material)))
     (test-case "A sphere may be assigned a material"
-               (define s (sphere "s" #:material (default-material #:ambient 1.)))
+               (define s (sphere "s" #:material (make-material #:ambient 1.)))
                (check-equal? (material-ambient (shape-material s)) 1.))
-    (let ([m (default-material)] [pos (pt 0. 0. 0.)])
+    (let ([m (make-material)] [pos (pt 0. 0. 0.)])
       (test-case "Lighting with the eye between the light and the surface"
                  (define eyev (vec 0. 0. -1.))
                  (define normalv (vec 0. 0. -1.))
-                 (define light (point-light (pt 0. 0. -10.) (color 1. 1. 1.)))
+                 (define light (point-light "l" (pt 0. 0. -10.) (color 1. 1. 1.)))
                  (check-color= (lighting m light pos eyev normalv) (color 1.9 1.9 1.9)))
       (test-case "Lighting with the eye between the light and the surface, eye offset 45 deg"
                  (define eyev (vec 0. (/ (sqrt 2.) 2.) (- (/ (sqrt 2.) 2.))))
                  (define normalv (vec 0. 0. -1.))
-                 (define light (point-light (pt 0. 0. -10.) (color 1. 1. 1.)))
+                 (define light (point-light "l" (pt 0. 0. -10.) (color 1. 1. 1.)))
                  (check-color= (lighting m light pos eyev normalv) (color 1.0 1.0 1.0)))
       (test-case "Lighting with eye opposite surface, light offset 45 deg"
                  (define eyev (vec 0. 0. -1.))
                  (define normalv (vec 0. 0. -1.))
-                 (define light (point-light (pt 0. 10. -10.) (color 1. 1. 1.)))
+                 (define light (point-light "l" (pt 0. 10. -10.) (color 1. 1. 1.)))
                  (check-color= (lighting m light pos eyev normalv) (color 0.7364 0.7364 0.7364)))
       (test-case "Lighting with eye in the path of the reflection vector"
                  (define eyev (vec 0. (- (/ (sqrt 2.) 2.)) (- (/ (sqrt 2.) 2.))))
                  (define normalv (vec 0. 0. -1.))
-                 (define light (point-light (pt 0. 10. -10.) (color 1. 1. 1.)))
+                 (define light (point-light "l" (pt 0. 10. -10.) (color 1. 1. 1.)))
                  (check-color= (lighting m light pos eyev normalv) (color 1.6364 1.6364 1.6364)))
       (test-case "Lighting with the light behind the surface"
                  (define eyev (vec 0. 0. -1.))
                  (define normalv (vec 0. 0. -1.))
-                 (define light (point-light (pt 0. 0. 10.) (color 1. 1. 1.)))
+                 (define light (point-light "l" (pt 0. 0. 10.) (color 1. 1. 1.)))
                  (check-color= (lighting m light pos eyev normalv) (color 0.1 0.1 0.1)))))))
 
 (run-tests light-and-shading-test)
 #+END_SRC
 
-* Making a Scene
-** Building a World
-** Defining a View Transformation
-** Implementing a Camera
-** Putting It Together
+* NEXT Making a Scene
+:PROPERTIES:
+:ACTIVATED: [2022-08-13]
+:END:
+** TODO Building a World
+
+Let's use hash tables because I also want to try them out:
+#+NAME: world-base
+#+BEGIN_SRC racket :noweb yes
+(struct world
+        ([objects : (Immutable-HashTable String Shape)] [lights : (Immutable-HashTable String Light)])
+  #:prefab
+  #:type-name World)
+
+(: add-object (-> World Shape * World))
+(define (add-object w . objects)
+  (for/fold ([objs : (Immutable-HashTable String Shape) (world-objects w)]
+             #:result (world objs (world-lights w)))
+            ([obj (in-list objects)])
+    (hash-set (world-objects w) (shape-id obj) obj)))
+
+(: add-light (-> World Light * World))
+(define (add-light w . lights)
+  (for/fold ([luces : (Immutable-HashTable String Light) (world-lights w)]
+             #:result (world (world-objects w) luces))
+            ([lux (in-list lights)])
+    (hash-set (world-lights w) (light-id lux) lux)))
+
+(define make-world (world (make-immutable-hash) (make-immutable-hash)))
+
+(define default-world
+  (let* ([w1 make-world]
+         [w2 (add-light w1 (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))]
+         [w3 (add-object w2
+                         (sphere "outer concentric sphere"
+                                 #:material (make-material #:color (color 0.8 1.0 0.6)
+                                                              #:diffuse 0.7
+                                                              #:specular 0.2)))]
+         [w4 (add-object w3 (sphere "inner concentric sphere" #:transformation (scale 0.5 0.5 0.5)))])
+    w4))
+#+END_SRC
+
+#+NAME: intersect-world
+#+BEGIN_SRC racket :noweb yes
+(: intersect-world (-> World Ray (Listof Intersection)))
+(define (intersect-world world ray)
+  (for/fold ([intersections : (Listof Intersection) '()]
+             #:result ((inst sort Intersection) intersections #:key intersection-t <=))
+            ([obj (in-hash-values (world-objects world))])
+    (append intersections (intersect obj ray))))
+#+END_SRC
+
+This is beautiful...if it could infer types more.
+
+** TODO Defining a View Transformation
+** TODO Implementing a Camera
+** TODO Putting It Together
+
+#+NAME: world
+#+BEGIN_SRC racket :noweb yes :tangle world.rkt
+#lang typed/racket
+(provide (all-defined-out))
+(require "tuples.rkt")
+(require "color.rkt")
+(require "matrix.rkt")
+(require "transform.rkt")
+(require "ray.rkt")
+(require "material.rkt")
+(require "shapes.rkt")
+(require "lighting.rkt")
+
+<<world-base>>
+
+#+END_SRC
+
+#+NAME: intersect
+#+BEGIN_SRC racket :noweb yes :tangle intersect.rkt
+#lang typed/racket
+(provide (all-defined-out))
+(require "tuples.rkt")
+(require "matrix.rkt")
+(require "transform.rkt")
+(require "ray.rkt")
+(require "shapes.rkt")
+(require "world.rkt")
+
+<<intersection>>
+
+<<intersect>>
+
+<<hit>>
+
+<<intersect-world>>
+#+END_SRC
+
+#+BEGIN_SRC racket :noweb yes :tangle tests/scene-test.rkt
+#lang typed/racket
+(require typed/rackunit
+         typed/rackunit/text-ui
+         "../tuples.rkt"
+         "../color.rkt"
+         "../matrix.rkt"
+         "../transform.rkt"
+         "../ray.rkt"
+         "../intersect.rkt"
+         "../lighting.rkt"
+         "../material.rkt"
+         "../shapes.rkt"
+         "../world.rkt")
+
+<<check-tuple=>>
+
+(define scene-test
+  (test-suite
+   "Making a Scene"
+   (test-suite
+    "Building a World"
+    (test-case "Creating a world"
+               (define w make-world)
+               (check-equal? (hash-values (world-objects w)) '())
+               (check-equal? (hash-values (world-lights w)) '()))
+    (test-case
+     "The default world"
+     (define w default-world)
+     (check-equal? (hash-ref (world-lights w) "default light")
+                   (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))
+     (check-equal?
+      (hash-ref (world-objects w) "outer concentric sphere")
+      (sphere "outer concentric sphere"
+              #:material (make-material #:color (color 0.8 1.0 0.6) #:diffuse 0.7 #:specular 0.2)))
+     (check-equal? (hash-ref (world-objects w) "inner concentric sphere")
+                   (sphere "inner concentric sphere" #:transformation (scale 0.5 0.5 0.5))))
+    (test-case "Intersect a world with a ray"
+               (define w default-world)
+               (define r (ray (pt 0. 0. -5.) (vec 0. 0. 1.)))
+               (define xs (intersect-world w r))
+               (check-equal? (length xs) 4)
+               (check-equal? (intersection-t (first xs)) 4.)
+               (check-equal? (intersection-t (second xs)) 4.5)
+               (check-equal? (intersection-t (third xs)) 5.5)
+               (check-equal? (intersection-t (fourth xs)) 6.))
+    (test-case "Precomputing the state of an intersection")
+    (test-case "The hit, when an intersection occurs on the outside")
+    (test-case "The hit, when an intersection occurs on the inside")
+    (test-case "Shading an intersection")
+    (test-case "Shading an intersection from the inside")
+    (test-case "The color when a ray misses")
+    (test-case "The color when a ray hits")
+    (test-case "The color with an intersection behind the ray"))
+   (test-suite "Defining a View Transformation")
+   (test-suite "Implementing a Camera")
+   (test-suite "Putting it Together")))
+
+(run-tests scene-test)
+#+END_SRC
+
 * Shadows
 ** Testing for Shadows
 ** Rendering Shadows

@@ -8,9 +8,9 @@
   #:type-name Material)
 
 (:
- default-material
+ make-material
  (->* () (#:color Color #:ambient Float #:diffuse Float #:specular Float #:shininess Float) Material))
-(define (default-material #:color [color (color 1. 1. 1.)]
+(define (make-material #:color [color (color 1. 1. 1.)]
                           #:ambient [ambient 0.1]
                           #:diffuse [diffuse 0.9]
                           #:specular [specular 0.9]
