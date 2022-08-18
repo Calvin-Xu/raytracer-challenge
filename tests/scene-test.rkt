@@ -85,7 +85,7 @@
                (check-color= c (color 0.38066 0.47583 0.2855)))
     (test-case
      "Shading an intersection from the inside"
-     (define w0 (add-light default-world (point-light "l" (pt 0. 0.25 0.) (color 1. 1. 1.))))
+     (define w0 (add-lights default-world (point-light "l" (pt 0. 0.25 0.) (color 1. 1. 1.))))
      (define w (world (world-objects default-world) (hash-remove (world-lights w0) "default light")))
      (define r (ray (pt 0. 0. 0.) (vec 0. 0. 1.)))
      (define s (hash-ref (world-objects w) "inner concentric sphere"))
@@ -103,14 +103,14 @@
      "The color with an intersection behind the ray"
      (define w
        (let* ([w1 make-world]
-              [w2 (add-light w1 (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))]
-              [w3 (add-object w2
+              [w2 (add-lights w1 (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))]
+              [w3 (add-objects w2
                               (sphere "outer concentric sphere"
                                       #:material (make-material #:color (color 0.8 1.0 0.6)
                                                                 #:ambient 1.
                                                                 #:diffuse 0.7
                                                                 #:specular 0.2)))]
-              [w4 (add-object w3
+              [w4 (add-objects w3
                               (sphere "inner concentric sphere"
                                       #:transformation (scale 0.5 0.5 0.5)
                                       #:material (make-material #:ambient 1.)))])

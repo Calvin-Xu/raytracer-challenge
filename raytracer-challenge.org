@@ -2210,31 +2210,31 @@ Let's use hash tables because I also want to try them out:
   #:prefab
   #:type-name World)
 
-(: add-object (-> World Shape * World))
-(define (add-object w . objects)
+(: add-objects (-> World Shape * World))
+(define (add-objects w . objects)
   (for/fold ([objs : (Immutable-HashTable String Shape) (world-objects w)]
              #:result (world objs (world-lights w)))
             ([obj (in-list objects)])
-    (hash-set (world-objects w) (shape-id obj) obj)))
+    (hash-set objs (shape-id obj) obj)))
 
-(: add-light (-> World Light * World))
-(define (add-light w . lights)
+(: add-lights (-> World Light * World))
+(define (add-lights w . lights)
   (for/fold ([luces : (Immutable-HashTable String Light) (world-lights w)]
              #:result (world (world-objects w) luces))
             ([lux (in-list lights)])
-    (hash-set (world-lights w) (light-id lux) lux)))
+    (hash-set luces (light-id lux) lux)))
 
 (define make-world (world (make-immutable-hash) (make-immutable-hash)))
 
 (define default-world
   (let* ([w1 make-world]
-         [w2 (add-light w1 (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))]
-         [w3 (add-object w2
+         [w2 (add-lights w1 (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))]
+         [w3 (add-objects w2
                          (sphere "outer concentric sphere"
                                  #:material (make-material #:color (color 0.8 1.0 0.6)
                                                               #:diffuse 0.7
                                                               #:specular 0.2)))]
-         [w4 (add-object w3 (sphere "inner concentric sphere" #:transformation (scale 0.5 0.5 0.5)))])
+         [w4 (add-objects w3 (sphere "inner concentric sphere" #:transformation (scale 0.5 0.5 0.5)))])
     w4))
 #+END_SRC
 
@@ -2332,9 +2332,10 @@ This is beautiful...if it could infer types more.
     (mat* orientation (translate (- (tuple-x from)) (- (tuple-y from)) (- (tuple-z from))))))
 #+END_SRC
 
-** NEXT Implementing a Camera
+** DONE Implementing a Camera
 :PROPERTIES:
 :ACTIVATED: [2022-08-17]
+:COMPLETED: [2022-08-18]
 :END:
 #+NAME: camera-base
 #+BEGIN_SRC racket :noweb yes
@@ -2566,7 +2567,7 @@ This is beautiful...if it could infer types more.
                (check-color= c (color 0.38066 0.47583 0.2855)))
     (test-case
      "Shading an intersection from the inside"
-     (define w0 (add-light default-world (point-light "l" (pt 0. 0.25 0.) (color 1. 1. 1.))))
+     (define w0 (add-lights default-world (point-light "l" (pt 0. 0.25 0.) (color 1. 1. 1.))))
      (define w (world (world-objects default-world) (hash-remove (world-lights w0) "default light")))
      (define r (ray (pt 0. 0. 0.) (vec 0. 0. 1.)))
      (define s (hash-ref (world-objects w) "inner concentric sphere"))
@@ -2584,14 +2585,14 @@ This is beautiful...if it could infer types more.
      "The color with an intersection behind the ray"
      (define w
        (let* ([w1 make-world]
-              [w2 (add-light w1 (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))]
-              [w3 (add-object w2
+              [w2 (add-lights w1 (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))]
+              [w3 (add-objects w2
                               (sphere "outer concentric sphere"
                                       #:material (make-material #:color (color 0.8 1.0 0.6)
                                                                 #:ambient 1.
                                                                 #:diffuse 0.7
                                                                 #:specular 0.2)))]
-              [w4 (add-object w3
+              [w4 (add-objects w3
                               (sphere "inner concentric sphere"
                                       #:transformation (scale 0.5 0.5 0.5)
                                       #:material (make-material #:ambient 1.)))])
