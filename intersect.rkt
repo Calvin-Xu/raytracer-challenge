@@ -39,6 +39,13 @@
                   result))))
   (iter intersections (intersection +inf.0 (sphere "placeholder"))))
 
+(: fast-hit (-> (Listof Intersection) (U Intersection Null)))
+  (define (fast-hit intersections)
+    (cond
+      [(null? intersections) null]
+      [(>= (intersection-t (car intersections)) 0.) (car intersections)]
+      [else (fast-hit (cdr intersections))]))
+
 (: intersect-world (-> World Ray (Listof Intersection)))
 (define (intersect-world world ray)
   (for/fold ([intersections : (Listof Intersection) '()]
@@ -79,8 +86,9 @@
 
 (: shade-ray (-> World Ray Color))
 (define (shade-ray world ray)
+  ;; the intersections sorted
   (let* ([intersections : (Listof Intersection) (intersect-world world ray)]
-         [hit : (U Intersection Null) (hit intersections)])
+         [hit : (U Intersection Null) (fast-hit intersections)])
     (if (null? hit)
         black
         (let* ([precomp : IntersectionData (precomp hit ray)]
