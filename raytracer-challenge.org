@@ -474,7 +474,7 @@ I'd rather not reuse the tuple implementations...
 ** DONE Creating a Canvas
 I got very tempted by  ~math/array~, but it might be more educational to build my own:
 
-#+NAME: canvas-base
+#+NAME: canvas-mutable-base
 #+BEGIN_SRC racket :noweb yes
 (struct _canvas
   ([width : Exact-Positive-Integer]
@@ -515,7 +515,7 @@ PPM format specs: http://netpbm.sourceforge.net/doc/ppm.html
 
 The following is very bad because I couldn't figure out a functional way of doing this.
 
-#+NAME: canvas-save
+#+NAME: canvas-mutable-save
 #+BEGIN_SRC racket :noweb yes
 (: serialize-canvas (->* (Canvas) (Exact-Nonnegative-Integer) String))
 (define (serialize-canvas canvas [max_color_val 255])
@@ -552,8 +552,8 @@ The following is very bad because I couldn't figure out a functional way of doin
 <<tuple-base>>
 <<color-base>>
 <<color-ops>>
-<<canvas-base>>
-<<canvas-save>>
+<<canvas-mutable-base>>
+<<canvas-mutable-save>>
 
 (define c (canvas 5 3))
 (set-pixel! c 0 0 (color 1.5 0 0))
@@ -633,8 +633,8 @@ Example: ~(save-canvas (build-canvas 10 10 (lambda (x y) (if (= x y) black white
 <<tuples>>
 <<color-base>>
 <<color-ops>>
-<<canvas-base>>
-<<canvas-save>>
+<<canvas-mutable-base>>
+<<canvas-mutable-save>>
 
 (struct projectile ([position : Tuple] [velocity : Tuple]) #:prefab)
 (struct environment ([gravity : Tuple] [wind : Tuple]) #:prefab)
@@ -683,22 +683,22 @@ Example: ~(save-canvas (build-canvas 10 10 (lambda (x y) (if (= x y) black white
 <<colors>>
 #+END_SRC
 
-#+NAME: canvas
-#+BEGIN_SRC racket :noweb yes :tangle canvas.rkt
+#+NAME: canvas-mutable
+#+BEGIN_SRC racket :noweb yes :tangle canvas-mutable.rkt
 #lang typed/racket
 (display
- "Warning: the mutable implementation of canvas has been deprecated; using canvas-immutable.rkt is strongly recommended\n")
+ "Warning: the mutable implementation of canvas has been deprecated; using canvas.rkt is strongly recommended\n")
 (provide (all-defined-out))
 (require "tuples.rkt")
 (require "color.rkt")
 
-<<canvas-base>>
+<<canvas-mutable-base>>
 
-<<canvas-save>>
+<<canvas-mutable-save>>
 #+END_SRC
 
-#+NAME: canvas-immutable
-#+BEGIN_SRC racket :noweb yes :tangle canvas-immutable.rkt
+#+NAME: canvas
+#+BEGIN_SRC racket :noweb yes :tangle canvas.rkt
 #lang typed/racket
 (provide (all-defined-out))
 (require "tuples.rkt")
@@ -713,8 +713,8 @@ Example: ~(save-canvas (build-canvas 10 10 (lambda (x y) (if (= x y) black white
          typed/rackunit/text-ui
          "../tuples.rkt"
          "../color.rkt"
-         ;; "../canvas.rkt"
-         "../canvas-immutable.rkt")
+         ;; "../canvas-mutable.rkt"
+         "../canvas.rkt")
 
 <<check-tuple=>>
 
@@ -1401,7 +1401,7 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 #lang typed/racket
 (require "tuples.rkt")
 (require "color.rkt")
-(require "canvas.rkt")
+(require "canvas-mutable.rkt")
 (require "matrix.rkt")
 
 (define c (canvas 25 25))

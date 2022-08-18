@@ -3,8 +3,8 @@
          typed/rackunit/text-ui
          "../tuples.rkt"
          "../color.rkt"
-         ;; "../canvas.rkt"
-         "../canvas-immutable.rkt")
+         ;; "../canvas-mutable.rkt"
+         "../canvas.rkt")
 
 (define-syntax-rule (check-tuple= t1 t2)
     (unless (and (f= (tuple-x t1) (tuple-x t2))

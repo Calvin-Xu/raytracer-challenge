@@ -1,30 +1,27 @@
 #lang typed/racket
-(display
- "Warning: the mutable implementation of canvas has been deprecated; using canvas-immutable.rkt is strongly recommended\n")
 (provide (all-defined-out))
 (require "tuples.rkt")
 (require "color.rkt")
 
-(struct _canvas
-  ([width : Exact-Positive-Integer]
-   [height : Exact-Positive-Integer]
-   [pixels : (Mutable-Vectorof Color)]) #:prefab #:type-name Canvas)
+(struct canvas
+        ([width : Exact-Positive-Integer]
+         [height : Exact-Positive-Integer]
+         [pixels : (Immutable-Vectorof Color)])
+  #:prefab
+  #:type-name Canvas)
 
-(: canvas-width (-> Canvas Exact-Positive-Integer))
-(define (canvas-width canvas)
-  (_canvas-width canvas))
-
-(: canvas-height (-> Canvas Exact-Positive-Integer))
-(define (canvas-height canvas)
-  (_canvas-height canvas))
-
-(: canvas-pixels (-> Canvas (Mutable-Vectorof Color)))
-(define (canvas-pixels canvas)
-  (_canvas-pixels canvas))
-
-(: canvas (-> Exact-Positive-Integer Exact-Positive-Integer Canvas))
-(define (canvas width height)
-  (_canvas width height (make-vector (* width height) (color 0. 0. 0.))))
+(: build-canvas
+   (-> Exact-Positive-Integer
+       Exact-Positive-Integer
+       (-> Exact-Nonnegative-Integer Exact-Nonnegative-Integer Color)
+       Canvas))
+(define (build-canvas width height f)
+  (canvas width
+          height
+          (vector->immutable-vector
+           (build-vector (ann (* width height) Integer)
+                         (lambda ([n : Exact-Nonnegative-Integer])
+                           (f (exact-floor (/ n width)) (remainder n width)))))))
 
 (: pixel-at (-> Canvas Exact-Nonnegative-Integer Exact-Nonnegative-Integer Color))
 (define (pixel-at canvas x y)
@@ -32,14 +29,8 @@
       (error "Illegal operation: access pixel out of bounds" x y)
       (vector-ref (canvas-pixels canvas) (+ (* y (canvas-width canvas)) x))))
 
-(: set-pixel! (-> Canvas Exact-Nonnegative-Integer Exact-Nonnegative-Integer Color Void))
-(define (set-pixel! canvas x y color)
-  (if (or (>= x (canvas-width canvas)) (>= y (canvas-height canvas)))
-      (error "Illegal operation: set pixel out of bounds" x y)
-      (vector-set! (canvas-pixels canvas) (+ (* y (canvas-width canvas)) x) color)))
-
-(: serialize-canvas (->* (Canvas) (Exact-Nonnegative-Integer) String))
-(define (serialize-canvas canvas [max_color_val 255])
+(: save-canvas (->* (Canvas String) (Exact-Nonnegative-Integer) Void))
+(define (save-canvas canvas filename [max_color_val 255])
   (define header
     (string-append "P3\n"
                    (number->string (canvas-width canvas))
@@ -48,21 +39,15 @@
                    "\n"
                    (number->string max_color_val)
                    "\n"))
-  (define bitmap (vector-map (lambda ([x : Color]) (color->string x max_color_val)) (canvas-pixels canvas)))
-  ;; color->string always adds whitespace at end
-  ;; replace appropriate whitespaces with newlines
-  (begin
-    (let ([PIXELS_PER_ROW 6] [n (* (canvas-width canvas) (canvas-height canvas))])
-      (for ([i (in-range n)])
-        (when (or (= (add1 i) n) (= 0 (remainder (add1 i) PIXELS_PER_ROW)))
-          (let ([curr (vector-ref bitmap i)])
-            (vector-set! bitmap
-                         i
-                         (string-append (substring curr 0 (sub1 (string-length curr))) "\n"))))))
-    (string-append header (string-append* (vector->list bitmap)))))
-
-(: save-canvas (-> Canvas String Void))
-(define (save-canvas canvas filename)
+  (define PIXELS_PER_ROW 6)
+  (: add-newline (-> String String))
+  (define (add-newline str)
+    (string-append (substring str 0 (sub1 (string-length str))) "\n"))
   (let ([out (open-output-file filename #:mode 'text #:exists 'replace)])
-    (display (serialize-canvas canvas) out)
+    (display header out)
+    (for/fold ([counter : Integer 1])
+              ([pixel : Color (in-vector (canvas-pixels canvas))])
+      (let ([serialized : String (color->string pixel max_color_val)])
+        (display (if (= counter PIXELS_PER_ROW) (add-newline serialized) serialized) out))
+      (if (= counter PIXELS_PER_ROW) 1 (add1 counter)))
     (close-output-port out)))
