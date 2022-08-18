@@ -10,7 +10,8 @@
          "../lighting.rkt"
          "../material.rkt"
          "../shapes.rkt"
-         "../world.rkt")
+         "../world.rkt"
+         "../camera.rkt")
 
 (define-syntax-rule (check-tuple= t1 t2)
     (unless (and (f= (tuple-x t1) (tuple-x t2))
@@ -144,13 +145,39 @@
                                                    #[0.76772 0.60609 0.12122 -2.82843]
                                                    #[-0.35857 0.59761 -0.71714 0.00000]
                                                    #[0.00000 0.00000 0.00000 1.00000]])))))
-   (test-suite "Implementing a Camera"
-               (test-case "Constructing a camera")
-               (test-case "The pixel size for a horizontal canvas")
-               (test-case "The pixel size for a vertical canvas")
-               (test-case "Constructing a ray through the center of the canvas")
-               (test-case "Constructing a ray through a corner of the canvas")
-               (test-case "Constructing a ray when the camera is transformed")
-               (test-case "Rendering a world with a camera"))))
+   (test-suite
+    "Implementing a Camera"
+    (test-case "Constructing a camera"
+               (define c (make-camera #:hsize 160 #:vsize 120 #:fov (/ pi 2)))
+               (check-equal? (camera-hsize c) 160)
+               (check-equal? (camera-vsize c) 120)
+               (check-equal? (camera-fov c) (/ pi 2))
+               (check-equal? (camera-transform c) id-mat-4))
+    (test-case "The pixel size for a horizontal canvas"
+               (define c (make-camera #:hsize 200 #:vsize 125 #:fov (/ pi 2)))
+               (check-= (camera-pixel-size c) 0.01 0.00001))
+    (test-case "The pixel size for a vertical canvas"
+               (define c (make-camera #:hsize 125 #:vsize 200 #:fov (/ pi 2)))
+               (check-= (camera-pixel-size c) 0.01 0.00001))
+    (test-case "Constructing a ray through the center of the canvas"
+               (define c (make-camera #:hsize 201 #:vsize 101 #:fov (/ pi 2)))
+               (define r (car (rays-to-pixel c 100 50)))
+               (check-tuple= (ray-origin r) (pt 0. 0. 0.))
+               (check-tuple= (ray-direction r) (vec 0. 0. -1.)))
+    (test-case "Constructing a ray through a corner of the canvas"
+               (define c (make-camera #:hsize 201 #:vsize 101 #:fov (/ pi 2)))
+               (define r (car (rays-to-pixel c 0 0)))
+               (check-tuple= (ray-origin r) (pt 0. 0. 0.))
+               (check-tuple= (ray-direction r) (vec 0.66519 0.33259 -0.66851)))
+    (test-case "Constructing a ray when the camera is transformed"
+               (define c
+                 (make-camera #:hsize 201
+                              #:vsize 101
+                              #:fov (/ pi 2)
+                              #:transform (mat* (rotate 'y (/ pi 4)) (translate 0. -2. 5.))))
+               (define r (car (rays-to-pixel c 100 50)))
+               (check-tuple= (ray-origin r) (pt 0. 2. -5.))
+               (check-tuple= (ray-direction r) (vec (/ (sqrt 2.) 2.) 0. (- (/ (sqrt 2.) 2.)))))
+    (test-case "Rendering a world with a camera"))))
 
 (run-tests scene-test)

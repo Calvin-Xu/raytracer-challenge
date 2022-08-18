@@ -2328,7 +2328,77 @@ This is beautiful...if it could infer types more.
     (mat* orientation (translate (- (tuple-x from)) (- (tuple-y from)) (- (tuple-z from))))))
 #+END_SRC
 
-** TODO Implementing a Camera
+** NEXT Implementing a Camera
+:PROPERTIES:
+:ACTIVATED: [2022-08-17]
+:END:
+#+NAME: camera-base
+#+BEGIN_SRC racket :noweb yes
+(struct camera
+        ([hsize : Exact-Nonnegative-Integer] [vsize : Exact-Nonnegative-Integer]
+                                             [fov : Float]
+                                             [transform : Matrix]
+                                             [focal-length : Float]
+                                             [aparture-size : Float])
+  #:prefab
+  #:type-name Camera)
+
+(: make-camera
+   (->* (#:hsize Exact-Nonnegative-Integer #:vsize Exact-Nonnegative-Integer #:fov Float)
+        (#:transform Matrix #:focal-length Float #:aparture-size Float)
+        Camera))
+(define (make-camera #:hsize hsize
+                     #:vsize vsize
+                     #:fov fov
+                     #:transform [transform id-mat-4]
+                     #:focal-length [focal-length 1.]
+                     #:aparture-size [aparture-size 1.])
+  (camera hsize vsize fov transform focal-length aparture-size))
+
+(: camera-half-width-height (-> Camera (Pair Float Float)))
+(define (camera-half-width-height c)
+  (let* ([half-view : Float (* (camera-focal-length c) (tan (/ (camera-fov c) 2.)))]
+         [aspect : Float (/ (exact->inexact (camera-hsize c)) (exact->inexact (camera-vsize c)))]
+         [half-width : Float (if (>= aspect 1.) half-view (* half-view aspect))]
+         [half-height : Float (if (>= aspect 1.) (/ half-view aspect) half-view)])
+    (cons (cast half-width Float) (cast half-height Float))))
+
+(: camera-pixel-size (-> Camera Float))
+(define (camera-pixel-size c)
+  (let* ([half-width-height (camera-half-width-height c)])
+    (/ (* 2. (car half-width-height)) (exact->inexact (camera-hsize c)))))
+#+END_SRC
+
+#+NAME: rays-to-pixel
+#+BEGIN_SRC racket :noweb yes
+(: rays-to-pixel
+   (->* (Camera Exact-Nonnegative-Integer Exact-Nonnegative-Integer)
+        (Exact-Positive-Integer)
+        (Listof Ray)))
+(define (rays-to-pixel c x y [nrays 1])
+  (let* ([pixel-size (camera-pixel-size c)]
+         [x-offset (* (+ (exact->inexact x) 0.5) pixel-size)]
+         [y-offset (* (+ (exact->inexact y) 0.5) pixel-size)]
+         [half-width-height (camera-half-width-height c)]
+         [world-x (- (car half-width-height) x-offset)]
+         [world-y (- (cdr half-width-height) y-offset)]
+         [pixel (mat-t* (inverse (camera-transform c))
+                        (pt world-x world-y (- (camera-focal-length c))))])
+    (: make-ray (-> Point Ray))
+    (define (make-ray origin)
+      (let* ([transformed-origin (assert (mat-t* (inverse (camera-transform c)) origin) point?)]
+             [direction (norm (assert (tuple- pixel transformed-origin) vect?))])
+        (ray transformed-origin direction)))
+    (for/fold ([rays : (Listof Ray) '()])
+              ([i (in-range 0 nrays)])
+      (if (= i 0)
+          ((inst cons Ray) (make-ray (pt 0. 0. 0.)) rays)
+          (let* ([random (random randgen)]
+                 [sign (if (> random 0.5) + -)]
+                 [offset (sign (* random (camera-aparture-size c)))])
+            ((inst cons Ray) (make-ray (pt offset offset 0.)) rays))))))
+#+END_SRC
+
 ** TODO Putting It Together
 #+NAME: world
 #+BEGIN_SRC racket :noweb yes :tangle world.rkt
@@ -2374,6 +2444,21 @@ This is beautiful...if it could infer types more.
 <<shade-ray>>
 #+END_SRC
 
+#+NAME: camera
+#+BEGIN_SRC racket :noweb yes :tangle camera.rkt
+#lang typed/racket
+(provide (all-defined-out))
+(require "tuples.rkt")
+(require "matrix.rkt")
+(require "ray.rkt")
+
+(define randgen (current-pseudo-random-generator))
+
+<<camera-base>>
+
+<<rays-to-pixel>>
+#+END_SRC
+
 #+BEGIN_SRC racket :noweb yes :tangle tests/scene-test.rkt
 #lang typed/racket
 (require typed/rackunit
@@ -2387,7 +2472,8 @@ This is beautiful...if it could infer types more.
          "../lighting.rkt"
          "../material.rkt"
          "../shapes.rkt"
-         "../world.rkt")
+         "../world.rkt"
+         "../camera.rkt")
 
 <<check-tuple=>>
 
@@ -2516,14 +2602,40 @@ This is beautiful...if it could infer types more.
                                                    #[0.76772 0.60609 0.12122 -2.82843]
                                                    #[-0.35857 0.59761 -0.71714 0.00000]
                                                    #[0.00000 0.00000 0.00000 1.00000]])))))
-   (test-suite "Implementing a Camera"
-               (test-case "Constructing a camera")
-               (test-case "The pixel size for a horizontal canvas")
-               (test-case "The pixel size for a vertical canvas")
-               (test-case "Constructing a ray through the center of the canvas")
-               (test-case "Constructing a ray through a corner of the canvas")
-               (test-case "Constructing a ray when the camera is transformed")
-               (test-case "Rendering a world with a camera"))))
+   (test-suite
+    "Implementing a Camera"
+    (test-case "Constructing a camera"
+               (define c (make-camera #:hsize 160 #:vsize 120 #:fov (/ pi 2)))
+               (check-equal? (camera-hsize c) 160)
+               (check-equal? (camera-vsize c) 120)
+               (check-equal? (camera-fov c) (/ pi 2))
+               (check-equal? (camera-transform c) id-mat-4))
+    (test-case "The pixel size for a horizontal canvas"
+               (define c (make-camera #:hsize 200 #:vsize 125 #:fov (/ pi 2)))
+               (check-= (camera-pixel-size c) 0.01 0.00001))
+    (test-case "The pixel size for a vertical canvas"
+               (define c (make-camera #:hsize 125 #:vsize 200 #:fov (/ pi 2)))
+               (check-= (camera-pixel-size c) 0.01 0.00001))
+    (test-case "Constructing a ray through the center of the canvas"
+               (define c (make-camera #:hsize 201 #:vsize 101 #:fov (/ pi 2)))
+               (define r (car (rays-to-pixel c 100 50)))
+               (check-tuple= (ray-origin r) (pt 0. 0. 0.))
+               (check-tuple= (ray-direction r) (vec 0. 0. -1.)))
+    (test-case "Constructing a ray through a corner of the canvas"
+               (define c (make-camera #:hsize 201 #:vsize 101 #:fov (/ pi 2)))
+               (define r (car (rays-to-pixel c 0 0)))
+               (check-tuple= (ray-origin r) (pt 0. 0. 0.))
+               (check-tuple= (ray-direction r) (vec 0.66519 0.33259 -0.66851)))
+    (test-case "Constructing a ray when the camera is transformed"
+               (define c
+                 (make-camera #:hsize 201
+                              #:vsize 101
+                              #:fov (/ pi 2)
+                              #:transform (mat* (rotate 'y (/ pi 4)) (translate 0. -2. 5.))))
+               (define r (car (rays-to-pixel c 100 50)))
+               (check-tuple= (ray-origin r) (pt 0. 2. -5.))
+               (check-tuple= (ray-direction r) (vec (/ (sqrt 2.) 2.) 0. (- (/ (sqrt 2.) 2.)))))
+    (test-case "Rendering a world with a camera"))))
 
 (run-tests scene-test)
 #+END_SRC
