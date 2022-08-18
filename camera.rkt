@@ -2,12 +2,16 @@
 (provide (all-defined-out))
 (require "tuples.rkt")
 (require "matrix.rkt")
+(require "color.rkt")
+(require "canvas.rkt")
 (require "ray.rkt")
+(require "intersect.rkt")
+(require "world.rkt")
 
 (define randgen (current-pseudo-random-generator))
 
 (struct camera
-        ([hsize : Exact-Nonnegative-Integer] [vsize : Exact-Nonnegative-Integer]
+        ([hsize : Exact-Positive-Integer] [vsize : Exact-Positive-Integer]
                                              [fov : Float]
                                              [transform : Matrix]
                                              [focal-length : Float]
@@ -16,7 +20,7 @@
   #:type-name Camera)
 
 (: make-camera
-   (->* (#:hsize Exact-Nonnegative-Integer #:vsize Exact-Nonnegative-Integer #:fov Float)
+   (->* (#:hsize Exact-Positive-Integer #:vsize Exact-Positive-Integer #:fov Float)
         (#:transform Matrix #:focal-length Float #:aparture-size Float)
         Camera))
 (define (make-camera #:hsize hsize
@@ -66,3 +70,14 @@
                  [sign (if (> random 0.5) + -)]
                  [offset (sign (* random (camera-aparture-size c)))])
             ((inst cons Ray) (make-ray (pt offset offset 0.)) rays))))))
+
+(: render (->* (World Camera) (Exact-Positive-Integer) Canvas))
+(define (render w c [nrays 1])
+  (build-canvas (camera-hsize c)
+                (camera-vsize c)
+                (lambda (x y)
+                  (let* ([rays : (Listof Ray) (rays-to-pixel c x y nrays)]
+                         [colors : (Listof Color) (map (lambda ([ray : Ray]) (shade-ray w ray)) rays)]
+                         [average : Color
+                                  (color/ (apply colors+ colors) (exact->inexact (length rays)))])
+                    average))))

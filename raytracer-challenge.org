@@ -459,6 +459,10 @@ I'd rather not reuse the tuple implementations...
 (: color* (-> Color (U Color Float) Color))
 (define (color* c arg)
   (color-op * c (if (color? arg) arg (color arg arg arg))))
+
+(: color/ (-> Color (U Color Float) Color))
+(define (color/ c arg)
+  (color-op / c (if (color? arg) arg (color arg arg arg))))
 #+END_SRC
 #+NAME: colors
 #+BEGIN_SRC racket :noweb yes
@@ -2335,7 +2339,7 @@ This is beautiful...if it could infer types more.
 #+NAME: camera-base
 #+BEGIN_SRC racket :noweb yes
 (struct camera
-        ([hsize : Exact-Nonnegative-Integer] [vsize : Exact-Nonnegative-Integer]
+        ([hsize : Exact-Positive-Integer] [vsize : Exact-Positive-Integer]
                                              [fov : Float]
                                              [transform : Matrix]
                                              [focal-length : Float]
@@ -2344,7 +2348,7 @@ This is beautiful...if it could infer types more.
   #:type-name Camera)
 
 (: make-camera
-   (->* (#:hsize Exact-Nonnegative-Integer #:vsize Exact-Nonnegative-Integer #:fov Float)
+   (->* (#:hsize Exact-Positive-Integer #:vsize Exact-Positive-Integer #:fov Float)
         (#:transform Matrix #:focal-length Float #:aparture-size Float)
         Camera))
 (define (make-camera #:hsize hsize
@@ -2399,6 +2403,20 @@ This is beautiful...if it could infer types more.
             ((inst cons Ray) (make-ray (pt offset offset 0.)) rays))))))
 #+END_SRC
 
+#+NAME: render
+#+BEGIN_SRC racket :noweb yes
+(: render (->* (World Camera) (Exact-Positive-Integer) Canvas))
+(define (render w c [nrays 1])
+  (build-canvas (camera-hsize c)
+                (camera-vsize c)
+                (lambda (x y)
+                  (let* ([rays : (Listof Ray) (rays-to-pixel c x y nrays)]
+                         [colors : (Listof Color) (map (lambda ([ray : Ray]) (shade-ray w ray)) rays)]
+                         [average : Color
+                                  (color/ (apply colors+ colors) (exact->inexact (length rays)))])
+                    average))))
+#+END_SRC
+
 ** TODO Putting It Together
 #+NAME: world
 #+BEGIN_SRC racket :noweb yes :tangle world.rkt
@@ -2450,13 +2468,19 @@ This is beautiful...if it could infer types more.
 (provide (all-defined-out))
 (require "tuples.rkt")
 (require "matrix.rkt")
+(require "color.rkt")
+(require "canvas.rkt")
 (require "ray.rkt")
+(require "intersect.rkt")
+(require "world.rkt")
 
 (define randgen (current-pseudo-random-generator))
 
 <<camera-base>>
 
 <<rays-to-pixel>>
+
+<<render>>
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes :tangle tests/scene-test.rkt
@@ -2465,6 +2489,7 @@ This is beautiful...if it could infer types more.
          typed/rackunit/text-ui
          "../tuples.rkt"
          "../color.rkt"
+         "../canvas.rkt"
          "../matrix.rkt"
          "../transform.rkt"
          "../ray.rkt"
@@ -2635,7 +2660,15 @@ This is beautiful...if it could infer types more.
                (define r (car (rays-to-pixel c 100 50)))
                (check-tuple= (ray-origin r) (pt 0. 2. -5.))
                (check-tuple= (ray-direction r) (vec (/ (sqrt 2.) 2.) 0. (- (/ (sqrt 2.) 2.)))))
-    (test-case "Rendering a world with a camera"))))
+    (test-case
+     "Rendering a world with a camera"
+     (define c
+       (make-camera #:hsize 11
+                    #:vsize 11
+                    #:fov (/ pi 2)
+                    #:transform (view-transformation (pt 0. 0. -5.) (pt 0. 0. 0.) (vec 0. 1. 0.))))
+     (define image (render default-world c))
+     (check-color= (pixel-at image 5 5) (color 0.38066 0.47583 0.2855))))))
 
 (run-tests scene-test)
 #+END_SRC

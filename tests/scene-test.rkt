@@ -3,6 +3,7 @@
          typed/rackunit/text-ui
          "../tuples.rkt"
          "../color.rkt"
+         "../canvas.rkt"
          "../matrix.rkt"
          "../transform.rkt"
          "../ray.rkt"
@@ -178,6 +179,14 @@
                (define r (car (rays-to-pixel c 100 50)))
                (check-tuple= (ray-origin r) (pt 0. 2. -5.))
                (check-tuple= (ray-direction r) (vec (/ (sqrt 2.) 2.) 0. (- (/ (sqrt 2.) 2.)))))
-    (test-case "Rendering a world with a camera"))))
+    (test-case
+     "Rendering a world with a camera"
+     (define c
+       (make-camera #:hsize 11
+                    #:vsize 11
+                    #:fov (/ pi 2)
+                    #:transform (view-transformation (pt 0. 0. -5.) (pt 0. 0. 0.) (vec 0. 1. 0.))))
+     (define image (render default-world c))
+     (check-color= (pixel-at image 5 5) (color 0.38066 0.47583 0.2855))))))
 
 (run-tests scene-test)

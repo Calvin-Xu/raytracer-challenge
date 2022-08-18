@@ -44,6 +44,10 @@
 (define (color* c arg)
   (color-op * c (if (color? arg) arg (color arg arg arg))))
 
+(: color/ (-> Color (U Color Float) Color))
+(define (color/ c arg)
+  (color-op / c (if (color? arg) arg (color arg arg arg))))
+
 (define black (color 0. 0. 0.))
 
 (define white (color 1. 1. 1.))
