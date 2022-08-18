@@ -119,3 +119,26 @@
 (: transform-pt (-> Point Matrix * Point))
 (define (transform-pt pt . transformations)
   (assert (mat-t* (apply transformation transformations) pt) point?))
+
+(: view-transformation (-> Point Point Vector Matrix))
+(define (view-transformation from to up)
+  (let* ([forward : Vector (norm (assert (tuple- to from) vect?))]
+         [left : Vector (cross* forward (norm up))]
+         [true-up : Vector (cross* left forward)]
+         [orientation : Matrix
+          (build-matrix 4
+                        4
+                        (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
+                          (cond
+                            [(and (= row 0) (= col 0)) (tuple-x left)]
+                            [(and (= row 0) (= col 1)) (tuple-y left)]
+                            [(and (= row 0) (= col 2)) (tuple-z left)]
+                            [(and (= row 1) (= col 0)) (tuple-x true-up)]
+                            [(and (= row 1) (= col 1)) (tuple-y true-up)]
+                            [(and (= row 1) (= col 2)) (tuple-z true-up)]
+                            [(and (= row 2) (= col 0)) (- (tuple-x forward))]
+                            [(and (= row 2) (= col 1)) (- (tuple-y forward))]
+                            [(and (= row 2) (= col 2)) (- (tuple-z forward))]
+                            [(and (= row 3) (= col 3)) 1.]
+                            [else 0.])))])
+    (mat* orientation (translate (- (tuple-x from)) (- (tuple-y from)) (- (tuple-z from))))))

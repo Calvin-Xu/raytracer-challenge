@@ -1437,6 +1437,8 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 <<shear>>
 
 <<transform>>
+
+<<view-transformation>>
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes :tangle tests/transform-test.rkt
@@ -2285,8 +2287,8 @@ This is beautiful...if it could infer types more.
 #+BEGIN_SRC racket :noweb yes
 (: shade-ray (-> World Ray Color))
 (define (shade-ray world ray)
-  ;; the intersections sorted
   (let* ([intersections : (Listof Intersection) (intersect-world world ray)]
+         ;; sorted intersections
          [hit : (U Intersection Null) (fast-hit intersections)])
     (if (null? hit)
         black
@@ -2295,10 +2297,39 @@ This is beautiful...if it could infer types more.
           shade))))
 #+END_SRC
 
-** TODO Defining a View Transformation
+** DONE Defining a View Transformation
+:PROPERTIES:
+:ACTIVATED: [2022-08-17]
+:COMPLETED: [2022-08-17]
+:END:
+#+NAME: view-transformation
+#+BEGIN_SRC racket :noweb yes
+(: view-transformation (-> Point Point Vector Matrix))
+(define (view-transformation from to up)
+  (let* ([forward : Vector (norm (assert (tuple- to from) vect?))]
+         [left : Vector (cross* forward (norm up))]
+         [true-up : Vector (cross* left forward)]
+         [orientation : Matrix
+          (build-matrix 4
+                        4
+                        (lambda ([row : Exact-Nonnegative-Integer] [col : Exact-Nonnegative-Integer])
+                          (cond
+                            [(and (= row 0) (= col 0)) (tuple-x left)]
+                            [(and (= row 0) (= col 1)) (tuple-y left)]
+                            [(and (= row 0) (= col 2)) (tuple-z left)]
+                            [(and (= row 1) (= col 0)) (tuple-x true-up)]
+                            [(and (= row 1) (= col 1)) (tuple-y true-up)]
+                            [(and (= row 1) (= col 2)) (tuple-z true-up)]
+                            [(and (= row 2) (= col 0)) (- (tuple-x forward))]
+                            [(and (= row 2) (= col 1)) (- (tuple-y forward))]
+                            [(and (= row 2) (= col 2)) (- (tuple-z forward))]
+                            [(and (= row 3) (= col 3)) 1.]
+                            [else 0.])))])
+    (mat* orientation (translate (- (tuple-x from)) (- (tuple-y from)) (- (tuple-z from))))))
+#+END_SRC
+
 ** TODO Implementing a Camera
 ** TODO Putting It Together
-
 #+NAME: world
 #+BEGIN_SRC racket :noweb yes :tangle world.rkt
 #lang typed/racket
@@ -2442,8 +2473,7 @@ This is beautiful...if it could infer types more.
      "The color with an intersection behind the ray"
      (define w
        (let* ([w1 make-world]
-              [w2 (add-light w1
-                             (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))]
+              [w2 (add-light w1 (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))]
               [w3 (add-object w2
                               (sphere "outer concentric sphere"
                                       #:material (make-material #:color (color 0.8 1.0 0.6)
@@ -2459,9 +2489,41 @@ This is beautiful...if it could infer types more.
      (check-color= (shade-ray w r)
                    (material-color (shape-material (hash-ref (world-objects w)
                                                              "inner concentric sphere"))))))
-   (test-suite "Defining a View Transformation")
-   (test-suite "Implementing a Camera")
-   (test-suite "Putting it Together")))
+   (test-suite "Defining a View Transformation"
+               (test-case "The transformation matrix for the default orientation"
+                          (define from (pt 0. 0. 0.))
+                          (define to (pt 0. 0. -1.))
+                          (define up (vec 0. 1. 0.))
+                          (check-true (mat= (view-transformation from to up) id-mat-4)))
+               (test-case "A view transformation matrix looking in positive z direction"
+                          (define from (pt 0. 0. 0.))
+                          (define to (pt 0. 0. 1.))
+                          (define up (vec 0. 1. 0.))
+                          (check-true (mat= (view-transformation from to up) (scale -1. 1. -1.))))
+               (test-case "The view transformation moves the world"
+                          (define from (pt 0. 0. 8.))
+                          (define to (pt 0. 0. 0.))
+                          (define up (vec 0. 1. 0.))
+                          (check-true (mat= (view-transformation from to up) (translate 0. 0. -8.))))
+               (test-case "An arbitrary view transformation"
+                          (define from (pt 1. 3. 2.))
+                          (define to (pt 4. -2. 8.))
+                          (define up (vec 1. 1. 0.))
+                          (check-true (mat= (view-transformation from to up)
+                                            (mat 4
+                                                 4
+                                                 #[#[-0.50709 0.50709 0.67612 -2.36643]
+                                                   #[0.76772 0.60609 0.12122 -2.82843]
+                                                   #[-0.35857 0.59761 -0.71714 0.00000]
+                                                   #[0.00000 0.00000 0.00000 1.00000]])))))
+   (test-suite "Implementing a Camera"
+               (test-case "Constructing a camera")
+               (test-case "The pixel size for a horizontal canvas")
+               (test-case "The pixel size for a vertical canvas")
+               (test-case "Constructing a ray through the center of the canvas")
+               (test-case "Constructing a ray through a corner of the canvas")
+               (test-case "Constructing a ray when the camera is transformed")
+               (test-case "Rendering a world with a camera"))))
 
 (run-tests scene-test)
 #+END_SRC

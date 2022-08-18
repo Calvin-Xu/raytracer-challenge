@@ -101,8 +101,7 @@
      "The color with an intersection behind the ray"
      (define w
        (let* ([w1 make-world]
-              [w2 (add-light w1
-                             (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))]
+              [w2 (add-light w1 (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))]
               [w3 (add-object w2
                               (sphere "outer concentric sphere"
                                       #:material (make-material #:color (color 0.8 1.0 0.6)
@@ -118,8 +117,40 @@
      (check-color= (shade-ray w r)
                    (material-color (shape-material (hash-ref (world-objects w)
                                                              "inner concentric sphere"))))))
-   (test-suite "Defining a View Transformation")
-   (test-suite "Implementing a Camera")
-   (test-suite "Putting it Together")))
+   (test-suite "Defining a View Transformation"
+               (test-case "The transformation matrix for the default orientation"
+                          (define from (pt 0. 0. 0.))
+                          (define to (pt 0. 0. -1.))
+                          (define up (vec 0. 1. 0.))
+                          (check-true (mat= (view-transformation from to up) id-mat-4)))
+               (test-case "A view transformation matrix looking in positive z direction"
+                          (define from (pt 0. 0. 0.))
+                          (define to (pt 0. 0. 1.))
+                          (define up (vec 0. 1. 0.))
+                          (check-true (mat= (view-transformation from to up) (scale -1. 1. -1.))))
+               (test-case "The view transformation moves the world"
+                          (define from (pt 0. 0. 8.))
+                          (define to (pt 0. 0. 0.))
+                          (define up (vec 0. 1. 0.))
+                          (check-true (mat= (view-transformation from to up) (translate 0. 0. -8.))))
+               (test-case "An arbitrary view transformation"
+                          (define from (pt 1. 3. 2.))
+                          (define to (pt 4. -2. 8.))
+                          (define up (vec 1. 1. 0.))
+                          (check-true (mat= (view-transformation from to up)
+                                            (mat 4
+                                                 4
+                                                 #[#[-0.50709 0.50709 0.67612 -2.36643]
+                                                   #[0.76772 0.60609 0.12122 -2.82843]
+                                                   #[-0.35857 0.59761 -0.71714 0.00000]
+                                                   #[0.00000 0.00000 0.00000 1.00000]])))))
+   (test-suite "Implementing a Camera"
+               (test-case "Constructing a camera")
+               (test-case "The pixel size for a horizontal canvas")
+               (test-case "The pixel size for a vertical canvas")
+               (test-case "Constructing a ray through the center of the canvas")
+               (test-case "Constructing a ray through a corner of the canvas")
+               (test-case "Constructing a ray when the camera is transformed")
+               (test-case "Rendering a world with a camera"))))
 
 (run-tests scene-test)

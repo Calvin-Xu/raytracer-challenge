@@ -86,8 +86,8 @@
 
 (: shade-ray (-> World Ray Color))
 (define (shade-ray world ray)
-  ;; the intersections sorted
   (let* ([intersections : (Listof Intersection) (intersect-world world ray)]
+         ;; sorted intersections
          [hit : (U Intersection Null) (fast-hit intersections)])
     (if (null? hit)
         black
