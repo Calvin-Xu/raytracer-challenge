@@ -28,7 +28,7 @@
                      #:fov fov
                      #:transform [transform id-mat-4]
                      #:focal-length [focal-length 1.]
-                     #:aparture-size [aparture-size 1.])
+                     #:aparture-size [aparture-size 0.002])
   (camera hsize vsize fov transform focal-length aparture-size))
 
 (: camera-half-width-height (-> Camera (Pair Float Float)))
@@ -77,7 +77,10 @@
                 (camera-vsize c)
                 (lambda (x y)
                   (let* ([rays : (Listof Ray) (rays-to-pixel c x y nrays)]
-                         [colors : (Listof Color) (map (lambda ([ray : Ray]) (shade-ray w ray)) rays)]
+                         [colors : (Listof Color)
+                          (map (lambda ([ray : Ray]) (shade-ray w ray)) rays)]
                          [average : Color
-                                  (color/ (apply colors+ colors) (exact->inexact (length rays)))])
+                          (if (= nrays 1)
+                              (car colors)
+                              (color/ (apply colors+ colors) (exact->inexact (length rays))))])
                     average))))
