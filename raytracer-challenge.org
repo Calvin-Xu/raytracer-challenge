@@ -2228,10 +2228,13 @@ Let's use hash tables because I also want to try them out:
             ([lux (in-list lights)])
     (hash-set luces (light-id lux) lux)))
 
-(define make-world (world (make-immutable-hash) (make-immutable-hash)))
+(: make-world (->* () ((Listof Shape) (Listof Light)) World))
+(define (make-world [objects '()] [lights '()])
+  (let ([empty : World (world (make-immutable-hash) (make-immutable-hash))])
+    (apply add-objects (apply add-lights empty lights) objects)))
 
 (define default-world
-  (let* ([w1 make-world]
+  (let* ([w1 (make-world)]
          [w2 (add-lights w1 (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))]
          [w3 (add-objects w2
                          (sphere "outer concentric sphere"
@@ -2480,7 +2483,7 @@ This is beautiful...if it could infer types more.
           #:material (make-material #:color (color 1. 0.8 0.1) #:diffuse 0.7 #:specular 0.3)))
 
 (define world
-  (add-lights (add-objects make-world floor left-wall right-wall middle right left)
+  (add-lights (add-objects (make-world) floor left-wall right-wall middle right left)
              (point-light "white-above-left" (pt -10. 10. -10.) (color 1. 1. 1.))))
 
 (define camera
@@ -2578,7 +2581,7 @@ This is beautiful...if it could infer types more.
    (test-suite
     "Building a World"
     (test-case "Creating a world"
-               (define w make-world)
+               (define w (make-world))
                (check-equal? (hash-values (world-objects w)) '())
                (check-equal? (hash-values (world-lights w)) '()))
     (test-case
@@ -2653,7 +2656,7 @@ This is beautiful...if it could infer types more.
     (test-case
      "The color with an intersection behind the ray"
      (define w
-       (let* ([w1 make-world]
+       (let* ([w1 (make-world)]
               [w2 (add-lights w1 (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))]
               [w3 (add-objects w2
                               (sphere "outer concentric sphere"

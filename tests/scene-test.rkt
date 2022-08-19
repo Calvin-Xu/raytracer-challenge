@@ -28,7 +28,7 @@
    (test-suite
     "Building a World"
     (test-case "Creating a world"
-               (define w make-world)
+               (define w (make-world))
                (check-equal? (hash-values (world-objects w)) '())
                (check-equal? (hash-values (world-lights w)) '()))
     (test-case
@@ -103,7 +103,7 @@
     (test-case
      "The color with an intersection behind the ray"
      (define w
-       (let* ([w1 make-world]
+       (let* ([w1 (make-world)]
               [w2 (add-lights w1 (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))]
               [w3 (add-objects w2
                               (sphere "outer concentric sphere"

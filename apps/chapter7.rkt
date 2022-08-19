@@ -46,7 +46,7 @@
           #:material (make-material #:color (color 1. 0.8 0.1) #:diffuse 0.7 #:specular 0.3)))
 
 (define world
-  (add-lights (add-objects make-world floor left-wall right-wall middle right left)
+  (add-lights (add-objects (make-world) floor left-wall right-wall middle right left)
              (point-light "white-above-left" (pt -10. 10. -10.) (color 1. 1. 1.))))
 
 (define camera

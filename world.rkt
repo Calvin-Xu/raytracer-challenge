@@ -28,10 +28,13 @@
             ([lux (in-list lights)])
     (hash-set luces (light-id lux) lux)))
 
-(define make-world (world (make-immutable-hash) (make-immutable-hash)))
+(: make-world (->* () ((Listof Shape) (Listof Light)) World))
+(define (make-world [objects '()] [lights '()])
+  (let ([empty : World (world (make-immutable-hash) (make-immutable-hash))])
+    (apply add-objects (apply add-lights empty lights) objects)))
 
 (define default-world
-  (let* ([w1 make-world]
+  (let* ([w1 (make-world)]
          [w2 (add-lights w1 (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))]
          [w3 (add-objects w2
                          (sphere "outer concentric sphere"
