@@ -82,7 +82,7 @@
                (define s (hash-ref (world-objects w) "outer concentric sphere"))
                (define i (intersection 4. s))
                (define comps (precomp i r))
-               (define c (shade w comps))
+               (define c (shade-intersection w comps))
                (check-color= c (color 0.38066 0.47583 0.2855)))
     (test-case
      "Shading an intersection from the inside"
@@ -92,7 +92,7 @@
      (define s (hash-ref (world-objects w) "inner concentric sphere"))
      (define i (intersection 0.5 s))
      (define comps (precomp i r))
-     (define c (shade w comps))
+     (define c (shade-intersection w comps))
      (check-color= c (color 0.90498 0.90498 0.90498)))
     (test-case "The color when a ray misses"
                (define r (ray (pt 0. 0. -5.) (vec 0. 1. 0.)))

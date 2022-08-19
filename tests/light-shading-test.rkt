@@ -90,26 +90,26 @@
                  (define eyev (vec 0. 0. -1.))
                  (define normalv (vec 0. 0. -1.))
                  (define light (point-light "l" (pt 0. 0. -10.) (color 1. 1. 1.)))
-                 (check-color= (lighting m light pos eyev normalv) (color 1.9 1.9 1.9)))
+                 (check-color= (phong m light pos eyev normalv) (color 1.9 1.9 1.9)))
       (test-case "Lighting with the eye between the light and the surface, eye offset 45 deg"
                  (define eyev (vec 0. (/ (sqrt 2.) 2.) (- (/ (sqrt 2.) 2.))))
                  (define normalv (vec 0. 0. -1.))
                  (define light (point-light "l" (pt 0. 0. -10.) (color 1. 1. 1.)))
-                 (check-color= (lighting m light pos eyev normalv) (color 1.0 1.0 1.0)))
+                 (check-color= (phong m light pos eyev normalv) (color 1.0 1.0 1.0)))
       (test-case "Lighting with eye opposite surface, light offset 45 deg"
                  (define eyev (vec 0. 0. -1.))
                  (define normalv (vec 0. 0. -1.))
                  (define light (point-light "l" (pt 0. 10. -10.) (color 1. 1. 1.)))
-                 (check-color= (lighting m light pos eyev normalv) (color 0.7364 0.7364 0.7364)))
+                 (check-color= (phong m light pos eyev normalv) (color 0.7364 0.7364 0.7364)))
       (test-case "Lighting with eye in the path of the reflection vector"
                  (define eyev (vec 0. (- (/ (sqrt 2.) 2.)) (- (/ (sqrt 2.) 2.))))
                  (define normalv (vec 0. 0. -1.))
                  (define light (point-light "l" (pt 0. 10. -10.) (color 1. 1. 1.)))
-                 (check-color= (lighting m light pos eyev normalv) (color 1.6364 1.6364 1.6364)))
+                 (check-color= (phong m light pos eyev normalv) (color 1.6364 1.6364 1.6364)))
       (test-case "Lighting with the light behind the surface"
                  (define eyev (vec 0. 0. -1.))
                  (define normalv (vec 0. 0. -1.))
                  (define light (point-light "l" (pt 0. 0. 10.) (color 1. 1. 1.)))
-                 (check-color= (lighting m light pos eyev normalv) (color 0.1 0.1 0.1)))))))
+                 (check-color= (phong m light pos eyev normalv) (color 0.1 0.1 0.1)))))))
 
 (run-tests light-and-shading-test)

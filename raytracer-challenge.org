@@ -1969,10 +1969,10 @@ Currently only handles spheres as do everything else.
   (constructor (shape-id val) #:transformation (shape-transformation val) #:material material))
 #+END_SRC
 
-#+NAME: lighting
+#+NAME: phong
 #+BEGIN_SRC racket :noweb yes
-(: lighting (->* (Material Light Point Vector Vector) (Boolean) Color))
-(define (lighting material light point eyev normalv [in-shadow #f])
+(: phong (->* (Material Light Point Vector Vector) (Boolean) Color))
+(define (phong material light point eyev normalv [in-shadow #f])
   (if in-shadow
       (let ([ambient (material-ambient material)])
         (color ambient ambient ambient))
@@ -2034,7 +2034,7 @@ Currently only handles spheres as do everything else.
                            [object (intersection-obj hit)]
                            [normal (normal-at object point)]
                            [eye (assert (-tuple (ray-direction r)) vect?)])
-                      (lighting (shape-material object) light point eye normal))))))
+                      (phong (shape-material object) light point eye normal))))))
 
 (save-canvas c "ray-sphere intersection.ppm")
 #+END_SRC
@@ -2063,7 +2063,7 @@ Currently only handles spheres as do everything else.
 
 <<normal-at>>
 
-<<lighting>>
+<<phong>>
 #+END_SRC
 
 #+NAME: shapes
@@ -2170,27 +2170,27 @@ Currently only handles spheres as do everything else.
                  (define eyev (vec 0. 0. -1.))
                  (define normalv (vec 0. 0. -1.))
                  (define light (point-light "l" (pt 0. 0. -10.) (color 1. 1. 1.)))
-                 (check-color= (lighting m light pos eyev normalv) (color 1.9 1.9 1.9)))
+                 (check-color= (phong m light pos eyev normalv) (color 1.9 1.9 1.9)))
       (test-case "Lighting with the eye between the light and the surface, eye offset 45 deg"
                  (define eyev (vec 0. (/ (sqrt 2.) 2.) (- (/ (sqrt 2.) 2.))))
                  (define normalv (vec 0. 0. -1.))
                  (define light (point-light "l" (pt 0. 0. -10.) (color 1. 1. 1.)))
-                 (check-color= (lighting m light pos eyev normalv) (color 1.0 1.0 1.0)))
+                 (check-color= (phong m light pos eyev normalv) (color 1.0 1.0 1.0)))
       (test-case "Lighting with eye opposite surface, light offset 45 deg"
                  (define eyev (vec 0. 0. -1.))
                  (define normalv (vec 0. 0. -1.))
                  (define light (point-light "l" (pt 0. 10. -10.) (color 1. 1. 1.)))
-                 (check-color= (lighting m light pos eyev normalv) (color 0.7364 0.7364 0.7364)))
+                 (check-color= (phong m light pos eyev normalv) (color 0.7364 0.7364 0.7364)))
       (test-case "Lighting with eye in the path of the reflection vector"
                  (define eyev (vec 0. (- (/ (sqrt 2.) 2.)) (- (/ (sqrt 2.) 2.))))
                  (define normalv (vec 0. 0. -1.))
                  (define light (point-light "l" (pt 0. 10. -10.) (color 1. 1. 1.)))
-                 (check-color= (lighting m light pos eyev normalv) (color 1.6364 1.6364 1.6364)))
+                 (check-color= (phong m light pos eyev normalv) (color 1.6364 1.6364 1.6364)))
       (test-case "Lighting with the light behind the surface"
                  (define eyev (vec 0. 0. -1.))
                  (define normalv (vec 0. 0. -1.))
                  (define light (point-light "l" (pt 0. 0. 10.) (color 1. 1. 1.)))
-                 (check-color= (lighting m light pos eyev normalv) (color 0.1 0.1 0.1)))))))
+                 (check-color= (phong m light pos eyev normalv) (color 0.1 0.1 0.1)))))))
 
 (run-tests light-and-shading-test)
 #+END_SRC
@@ -2277,13 +2277,13 @@ This is beautiful...if it could infer types more.
     (intersection-data t object point eyev (if inside -normalv normalv) inside)))
 #+END_SRC
 
-#+NAME: shade
+#+NAME: shade-intersection
 #+BEGIN_SRC racket :noweb yes
-(: shade (-> World IntersectionData Color))
-(define (shade world comps)
+(: shade-intersection (-> World IntersectionData Color))
+(define (shade-intersection world comps)
   (let ([per-light-shading : (Listof Color)
          (for/list ([light : Light (in-hash-values (world-lights world))])
-           (lighting (shape-material (intersection-data-object comps))
+           (phong (shape-material (intersection-data-object comps))
                      light
                      (intersection-data-point comps)
                      (intersection-data-eyev comps)
@@ -2301,7 +2301,7 @@ This is beautiful...if it could infer types more.
     (if (null? hit)
         black
         (let* ([precomp : IntersectionData (precomp hit ray)]
-               [shade : Color (shade world precomp)])
+               [shade : Color (shade-intersection world precomp)])
           shade))))
 #+END_SRC
 
@@ -2632,7 +2632,7 @@ This is beautiful...if it could infer types more.
                (define s (hash-ref (world-objects w) "outer concentric sphere"))
                (define i (intersection 4. s))
                (define comps (precomp i r))
-               (define c (shade w comps))
+               (define c (shade-intersection w comps))
                (check-color= c (color 0.38066 0.47583 0.2855)))
     (test-case
      "Shading an intersection from the inside"
@@ -2642,7 +2642,7 @@ This is beautiful...if it could infer types more.
      (define s (hash-ref (world-objects w) "inner concentric sphere"))
      (define i (intersection 0.5 s))
      (define comps (precomp i r))
-     (define c (shade w comps))
+     (define c (shade-intersection w comps))
      (check-color= c (color 0.90498 0.90498 0.90498)))
     (test-case "The color when a ray misses"
                (define r (ray (pt 0. 0. -5.) (vec 0. 1. 0.)))

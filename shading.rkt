@@ -10,8 +10,8 @@
 (require "light.rkt")
 (require "world.rkt")
 
-(: lighting (->* (Material Light Point Vector Vector) (Boolean) Color))
-(define (lighting material light point eyev normalv [in-shadow #f])
+(: phong (->* (Material Light Point Vector Vector) (Boolean) Color))
+(define (phong material light point eyev normalv [in-shadow #f])
   (if in-shadow
       (let ([ambient (material-ambient material)])
         (color ambient ambient ambient))
@@ -41,30 +41,12 @@
 
 (: is-shadowed (-> World Light Point Boolean))
 (define (is-shadowed world light point)
-         (let* ([v
-                 :
-                 Vector
-                 (assert (tuple- (light-position light) point) vect?)]
-                [distance
-                 :
-                 Float
-                 (mag v)]
-                [direction
-                 :
-                 Vector
-                 (norm v)]
-                [r
-                 :
-                 Ray
-                 (ray point direction)]
-                [intersections
-                 :
-                 (Listof Intersection)
-                 (intersect-world world r)]
-                [hit
-                 :
-                 (U Null Intersection)
-                 (hit intersections)])
+         (let* ([v : Vector (assert (tuple- (light-position light) point) vect?)]
+                [distance : Float (mag v)]
+                [direction : Vector (norm v)]
+                [r : Ray (ray point direction)]
+                [intersections : (Listof Intersection) (intersect-world world r)]
+                [hit : (U Null Intersection) (hit intersections)])
            (cond
              [(null? hit) #f]
              [(< (intersection-t hit) distance) #t]
@@ -90,11 +72,11 @@
          [inside (if (< (dot* normalv eyev) 0.) #t #f)])
     (intersection-data t object point eyev (if inside -normalv normalv) inside)))
 
-(: shade (-> World IntersectionData Color))
-(define (shade world comps)
+(: shade-intersection (-> World IntersectionData Color))
+(define (shade-intersection world comps)
   (let ([per-light-shading : (Listof Color)
          (for/list ([light : Light (in-hash-values (world-lights world))])
-           (lighting (shape-material (intersection-data-object comps))
+           (phong (shape-material (intersection-data-object comps))
                      light
                      (intersection-data-point comps)
                      (intersection-data-eyev comps)
@@ -109,5 +91,5 @@
     (if (null? hit)
         black
         (let* ([precomp : IntersectionData (precomp hit ray)]
-               [shade : Color (shade world precomp)])
+               [shade : Color (shade-intersection world precomp)])
           shade))))
