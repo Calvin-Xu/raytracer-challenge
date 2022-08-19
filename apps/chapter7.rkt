@@ -5,7 +5,8 @@
 (require "../transform.rkt")
 (require "../shapes.rkt")
 (require "../material.rkt")
-(require "../lighting.rkt")
+(require "../light.rkt")
+(require "../shading.rkt")
 (require "../world.rkt")
 (require "../camera.rkt")
 

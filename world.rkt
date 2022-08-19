@@ -7,7 +7,7 @@
 (require "ray.rkt")
 (require "material.rkt")
 (require "shapes.rkt")
-(require "lighting.rkt")
+(require "light.rkt")
 
 (struct world
         ([objects : (Immutable-HashTable String Shape)] [lights : (Immutable-HashTable String Light)])

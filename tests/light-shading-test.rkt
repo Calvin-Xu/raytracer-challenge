@@ -7,7 +7,8 @@
          "../transform.rkt"
          "../ray.rkt"
          "../intersect.rkt"
-         "../lighting.rkt"
+         "../light.rkt"
+         "../shading.rkt"
          "../material.rkt"
          "../shapes.rkt")
 

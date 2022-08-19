@@ -1971,8 +1971,11 @@ Currently only handles spheres as do everything else.
 
 #+NAME: lighting
 #+BEGIN_SRC racket :noweb yes
-(: lighting (-> Material Light Point Vector Vector Color))
-(define (lighting material light point eyev normalv)
+(: lighting (->* (Material Light Point Vector Vector) (Boolean) Color))
+(define (lighting material light point eyev normalv [in-shadow #f])
+  (if in-shadow
+      (let ([ambient (material-ambient material)])
+        (color ambient ambient ambient))
   (let* ([blended : Color
           (color* (material-color material) (light-intensity light))]
          [ambient : Color
@@ -1995,7 +1998,7 @@ Currently only handles spheres as do everything else.
                     (color* (light-intensity light)
                             (* (material-specular material)
                                (cast (expt *reflect-eye (material-shininess material)) Float))))))])
-    (colors+ ambient diffuse specular)))
+    (colors+ ambient diffuse specular))))
 #+END_SRC
 
 ** DONE Putting It Together
@@ -2045,8 +2048,7 @@ Currently only handles spheres as do everything else.
 <<material>>
 #+END_SRC
 
-#+NAME: lighting
-#+BEGIN_SRC racket :noweb yes :tangle lighting.rkt
+#+BEGIN_SRC racket :noweb yes :tangle no
 #lang typed/racket
 (provide (all-defined-out))
 (require "tuples.rkt")
@@ -2090,7 +2092,8 @@ Currently only handles spheres as do everything else.
          "../transform.rkt"
          "../ray.rkt"
          "../intersect.rkt"
-         "../lighting.rkt"
+         "../light.rkt"
+         "../shading.rkt"
          "../material.rkt"
          "../shapes.rkt")
 
@@ -2436,7 +2439,8 @@ This is beautiful...if it could infer types more.
 (require "../transform.rkt")
 (require "../shapes.rkt")
 (require "../material.rkt")
-(require "../lighting.rkt")
+(require "../light.rkt")
+(require "../shading.rkt")
 (require "../world.rkt")
 (require "../camera.rkt")
 
@@ -2483,7 +2487,8 @@ This is beautiful...if it could infer types more.
   (make-camera #:hsize 500
                #:vsize 250
                #:fov (/ pi 3)
-               #:transform (view-transformation (pt 0. 1.5 -5.) (pt 0. 1. 0.) (vec 0. 1. 0.))))
+               #:transform (view-transformation (pt 0. 1.5 -5.) (pt 0. 1. 0.) (vec 0. 1. 0.))
+               #:aparture-size 0.01))
 
 (save-canvas (render world camera 6) "test.ppm")
 #+END_SRC
@@ -2499,7 +2504,7 @@ This is beautiful...if it could infer types more.
 (require "ray.rkt")
 (require "material.rkt")
 (require "shapes.rkt")
-(require "lighting.rkt")
+(require "light.rkt")
 
 <<world-base>>
 #+END_SRC
@@ -2515,7 +2520,6 @@ This is beautiful...if it could infer types more.
 (require "ray.rkt")
 (require "shapes.rkt")
 (require "world.rkt")
-(require "lighting.rkt")
 
 <<intersection>>
 
@@ -2524,12 +2528,6 @@ This is beautiful...if it could infer types more.
 <<hit>>
 
 <<intersect-world>>
-
-<<precomp>>
-
-<<shade>>
-
-<<shade-ray>>
 #+END_SRC
 
 #+NAME: camera
@@ -2541,6 +2539,7 @@ This is beautiful...if it could infer types more.
 (require "color.rkt")
 (require "canvas.rkt")
 (require "ray.rkt")
+(require "shading.rkt")
 (require "intersect.rkt")
 (require "world.rkt")
 
@@ -2564,7 +2563,8 @@ This is beautiful...if it could infer types more.
          "../transform.rkt"
          "../ray.rkt"
          "../intersect.rkt"
-         "../lighting.rkt"
+         "../light.rkt"
+         "../shading.rkt"
          "../material.rkt"
          "../shapes.rkt"
          "../world.rkt"
