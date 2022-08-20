@@ -57,20 +57,23 @@
                      [point : Point]
                      [eyev : Vector]
                      [normalv : Vector]
-                     [inside : Boolean])
+                     [inside : Boolean]
+                     [over-pt : Point])
   #:prefab
   #:type-name IntersectionData)
 
 (: precomp (-> Intersection Ray IntersectionData))
 (define (precomp intersection ray)
+  (define EPSILON 0.00001)
   (let* ([t (intersection-t intersection)]
          [object (intersection-obj intersection)]
          [point (pos ray t)]
          [eyev (assert (-tuple (ray-direction ray)) vect?)]
          [normalv (normal-at object point)]
          [-normalv (assert (-tuple normalv) vect?)]
-         [inside (if (< (dot* normalv eyev) 0.) #t #f)])
-    (intersection-data t object point eyev (if inside -normalv normalv) inside)))
+         [inside (if (< (dot* normalv eyev) 0.) #t #f)]
+         [over-pt (assert (tuple+ point (tuple* normalv EPSILON)) point?)])
+    (intersection-data t object point eyev (if inside -normalv normalv) inside over-pt)))
 
 (: shade-intersection (-> World IntersectionData Color))
 (define (shade-intersection world comps)

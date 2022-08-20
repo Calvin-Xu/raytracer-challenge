@@ -16,11 +16,18 @@
          "../camera.rkt")
 
 (define-syntax-rule (check-tuple= t1 t2)
-    (unless (and (f= (tuple-x t1) (tuple-x t2))
-                 (f= (tuple-y t1) (tuple-y t2))
-                 (f= (tuple-z t1) (tuple-z t2))
-                 (f= (tuple-w t1) (tuple-w t2)))
-      (printf "Failure: tuples not equal ~v, ~v\n" t1 t2)))
+  (check-true (and (f= (tuple-x t1) (tuple-x t2))
+                   (f= (tuple-y t1) (tuple-y t2))
+                   (f= (tuple-z t1) (tuple-z t2))
+                   (f= (tuple-w t1) (tuple-w t2)))
+              (format "Failure: tuples not equal ~a ~a" t1 t2)))
+
+(define-syntax-rule (check-color= c1 c2)
+  (check-true
+   (and (f= (color-r c1) (color-r c2))
+        (f= (color-g c1) (color-g c2))
+        (f= (color-b c1) (color-b c2)))
+   (format "Failure: colors not equal ~a ~a" c1 c2)))
 
 (define shadow-test
   (test-suite
@@ -52,7 +59,15 @@
                           (define p (pt -2. 2. -2.))
                           (check-false (is-shadowed w (car (hash-values (world-lights w))) p))))
    (test-suite "Rendering Shadows"
-               (test-case "shade-hit is given an intersection in shadow")
+               (test-case "shade-hit is given an intersection in shadow"
+                          (define s2 (sphere "s2" #:transformation (translate 0. 0. 0.)))
+                          (define w
+                            (make-world (list (sphere "s1") s2)
+                                        (list (point-light "l1" (pt 0. 0. -10.) (color 1. 1. 1.)))))
+                          (define r (ray (pt 0. 0. 5.) (vec 0. 0. 1.)))
+                          (define i (intersection 4. s2))
+                          (define c (shade-intersection w (precomp i r)))
+                          (check-color= c (color 0.1 0.1 0.1)))
                (test-case "The hit should offset the point"))))
 
 (run-tests shadow-test)

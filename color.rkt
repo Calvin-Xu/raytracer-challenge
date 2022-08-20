@@ -16,12 +16,6 @@
                  (number->string (scale (color-b color)))
                  " "))
 
-(define-syntax-rule (check-color= c1 c2)
-  (unless (and (f= (color-r c1) (color-r c2))
-               (f= (color-g c1) (color-g c2))
-               (f= (color-b c1) (color-b c2)))
-    (printf "Failure: colors not equal ~v, ~v\n" c1 c2)))
-
 (: color-op (-> (-> Float Float * Float) Color Color Color))
 (define (color-op op c1 c2)
   (color (op (color-r c1) (color-r c2))

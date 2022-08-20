@@ -9,11 +9,11 @@
          "../shapes.rkt")
 
 (define-syntax-rule (check-tuple= t1 t2)
-    (unless (and (f= (tuple-x t1) (tuple-x t2))
-                 (f= (tuple-y t1) (tuple-y t2))
-                 (f= (tuple-z t1) (tuple-z t2))
-                 (f= (tuple-w t1) (tuple-w t2)))
-      (printf "Failure: tuples not equal ~v, ~v\n" t1 t2)))
+  (check-true (and (f= (tuple-x t1) (tuple-x t2))
+                   (f= (tuple-y t1) (tuple-y t2))
+                   (f= (tuple-z t1) (tuple-z t2))
+                   (f= (tuple-w t1) (tuple-w t2)))
+              (format "Failure: tuples not equal ~a ~a" t1 t2)))
 
 (define ray-intersection-test
   (test-suite

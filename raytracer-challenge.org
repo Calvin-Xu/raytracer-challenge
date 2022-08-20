@@ -80,11 +80,11 @@ We should already be able to compare tuples for equality by making them ~#:prefa
 #+NAME: check-tuple=
 #+BEGIN_SRC racket :noweb yes
 (define-syntax-rule (check-tuple= t1 t2)
-    (unless (and (f= (tuple-x t1) (tuple-x t2))
-                 (f= (tuple-y t1) (tuple-y t2))
-                 (f= (tuple-z t1) (tuple-z t2))
-                 (f= (tuple-w t1) (tuple-w t2)))
-      (printf "Failure: tuples not equal ~v, ~v\n" t1 t2)))
+  (check-true (and (f= (tuple-x t1) (tuple-x t2))
+                   (f= (tuple-y t1) (tuple-y t2))
+                   (f= (tuple-z t1) (tuple-z t2))
+                   (f= (tuple-w t1) (tuple-w t2)))
+              (format "Failure: tuples not equal ~a ~a" t1 t2)))
 #+END_SRC
 
 ** DONE Operations
@@ -337,13 +337,6 @@ Position: '#s((point tuple 4) 10.11370849898476 0.3137084989847604 0.0 1.0)
          typed/rackunit/text-ui
          "../tuples.rkt")
 
-(define-syntax-rule (check-tuple= t1 t2)
-  (unless (and (f= (tuple-x t1) (tuple-x t2))
-               (f= (tuple-y t1) (tuple-y t2))
-               (f= (tuple-z t1) (tuple-z t2))
-               (f= (tuple-w t1) (tuple-w t2)))
-    (printf "Failure: tuples not equal ~v, ~v\n" t1 t2)))
-
 (define tuples-test
   (test-suite
    "Tuples, Points, and Vectors"
@@ -428,10 +421,11 @@ Position: '#s((point tuple 4) 10.11370849898476 0.3137084989847604 0.0 1.0)
 #+NAME: check-color=
 #+BEGIN_SRC racket :noweb yes
 (define-syntax-rule (check-color= c1 c2)
-  (unless (and (f= (color-r c1) (color-r c2))
-               (f= (color-g c1) (color-g c2))
-               (f= (color-b c1) (color-b c2)))
-    (printf "Failure: colors not equal ~v, ~v\n" c1 c2)))
+  (check-true
+   (and (f= (color-r c1) (color-r c2))
+        (f= (color-g c1) (color-g c2))
+        (f= (color-b c1) (color-b c2)))
+   (format "Failure: colors not equal ~a ~a" c1 c2)))
 #+END_SRC
 
 ** DONE Implementing Color Operations
@@ -676,8 +670,6 @@ Example: ~(save-canvas (build-canvas 10 10 (lambda (x y) (if (= x y) black white
 
 <<color-base>>
 
-<<check-color=>>
-
 <<color-ops>>
 
 <<colors>>
@@ -717,6 +709,8 @@ Example: ~(save-canvas (build-canvas 10 10 (lambda (x y) (if (= x y) black white
          "../canvas.rkt")
 
 <<check-tuple=>>
+
+<<check-color=>>
 
 (define canvas-test
   (test-suite
@@ -2098,6 +2092,8 @@ Currently only handles spheres as do everything else.
          "../shapes.rkt")
 
 <<check-tuple=>>
+
+<<check-color=>>
 
 (define light-and-shading-test
   (test-suite

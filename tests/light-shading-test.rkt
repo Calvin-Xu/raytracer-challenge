@@ -13,11 +13,18 @@
          "../shapes.rkt")
 
 (define-syntax-rule (check-tuple= t1 t2)
-    (unless (and (f= (tuple-x t1) (tuple-x t2))
-                 (f= (tuple-y t1) (tuple-y t2))
-                 (f= (tuple-z t1) (tuple-z t2))
-                 (f= (tuple-w t1) (tuple-w t2)))
-      (printf "Failure: tuples not equal ~v, ~v\n" t1 t2)))
+  (check-true (and (f= (tuple-x t1) (tuple-x t2))
+                   (f= (tuple-y t1) (tuple-y t2))
+                   (f= (tuple-z t1) (tuple-z t2))
+                   (f= (tuple-w t1) (tuple-w t2)))
+              (format "Failure: tuples not equal ~a ~a" t1 t2)))
+
+(define-syntax-rule (check-color= c1 c2)
+  (check-true
+   (and (f= (color-r c1) (color-r c2))
+        (f= (color-g c1) (color-g c2))
+        (f= (color-b c1) (color-b c2)))
+   (format "Failure: colors not equal ~a ~a" c1 c2)))
 
 (define light-and-shading-test
   (test-suite
