@@ -72,8 +72,9 @@
          [normalv (normal-at object point)]
          [-normalv (assert (-tuple normalv) vect?)]
          [inside (if (< (dot* normalv eyev) 0.) #t #f)]
-         [over-pt (assert (tuple+ point (tuple* normalv EPSILON)) point?)])
-    (intersection-data t object point eyev (if inside -normalv normalv) inside over-pt)))
+         [adjusted-normalv (if inside -normalv normalv)]
+         [over-pt (assert (tuple+ point (tuple* adjusted-normalv EPSILON)) point?)])
+    (intersection-data t object point eyev adjusted-normalv inside over-pt)))
 
 (: shade-intersection (-> World IntersectionData Color))
 (define (shade-intersection world comps)
@@ -83,7 +84,8 @@
                      light
                      (intersection-data-point comps)
                      (intersection-data-eyev comps)
-                     (intersection-data-normalv comps)))])
+                     (intersection-data-normalv comps)
+                     (is-shadowed world light (intersection-data-over-pt comps))))])
     (apply colors+ per-light-shading)))
 
 (: shade-ray (-> World Ray Color))

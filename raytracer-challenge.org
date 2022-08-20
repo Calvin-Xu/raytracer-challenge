@@ -337,6 +337,8 @@ Position: '#s((point tuple 4) 10.11370849898476 0.3137084989847604 0.0 1.0)
          typed/rackunit/text-ui
          "../tuples.rkt")
 
+<<check-tuple=>>
+
 (define tuples-test
   (test-suite
    "Tuples, Points, and Vectors"
@@ -2196,7 +2198,7 @@ Currently only handles spheres as do everything else.
 :ACTIVATED: [2022-08-13]
 :COMPLETED: [2022-08-18]
 :END:
-** DONE Building a World
+** DONE Building & Rendering a World
 :PROPERTIES:
 :ACTIVATED: [2022-08-13]
 :COMPLETED: [2022-08-17]
@@ -2260,20 +2262,24 @@ This is beautiful...if it could infer types more.
                      [point : Point]
                      [eyev : Vector]
                      [normalv : Vector]
-                     [inside : Boolean])
+                     [inside : Boolean]
+                     [over-pt : Point])
   #:prefab
   #:type-name IntersectionData)
 
 (: precomp (-> Intersection Ray IntersectionData))
 (define (precomp intersection ray)
+  (define EPSILON 0.00001)
   (let* ([t (intersection-t intersection)]
          [object (intersection-obj intersection)]
          [point (pos ray t)]
          [eyev (assert (-tuple (ray-direction ray)) vect?)]
          [normalv (normal-at object point)]
          [-normalv (assert (-tuple normalv) vect?)]
-         [inside (if (< (dot* normalv eyev) 0.) #t #f)])
-    (intersection-data t object point eyev (if inside -normalv normalv) inside)))
+         [inside (if (< (dot* normalv eyev) 0.) #t #f)]
+         [adjusted-normalv (if inside -normalv normalv)]
+         [over-pt (assert (tuple+ point (tuple* adjusted-normalv EPSILON)) point?)])
+    (intersection-data t object point eyev adjusted-normalv inside over-pt)))
 #+END_SRC
 
 #+NAME: shade-intersection
@@ -2286,7 +2292,8 @@ This is beautiful...if it could infer types more.
                      light
                      (intersection-data-point comps)
                      (intersection-data-eyev comps)
-                     (intersection-data-normalv comps)))])
+                     (intersection-data-normalv comps)
+                     (is-shadowed world light (intersection-data-over-pt comps))))])
     (apply colors+ per-light-shading)))
 #+END_SRC
 
@@ -2479,15 +2486,16 @@ This is beautiful...if it could infer types more.
           #:material (make-material #:color (color 1. 0.8 0.1) #:diffuse 0.7 #:specular 0.3)))
 
 (define world
-  (add-lights (add-objects (make-world) floor left-wall right-wall middle right left)
-             (point-light "white-above-left" (pt -10. 10. -10.) (color 1. 1. 1.))))
+  (make-world (list floor left-wall right-wall middle right left)
+              (list (point-light "white-above-left" (pt -10. 10. -10.) (color 1. 1. 1.))
+                    (point-light "orange-above-right" (pt 5. 10. -10.) (color 1. 0.65 0.)))))
 
 (define camera
   (make-camera #:hsize 500
                #:vsize 250
                #:fov (/ pi 3)
                #:transform (view-transformation (pt 0. 1.5 -5.) (pt 0. 1. 0.) (vec 0. 1. 0.))
-               #:aparture-size 0.01))
+               #:aparture-size 0.005))
 
 (save-canvas (render world camera 6) "test.ppm")
 #+END_SRC
@@ -2570,6 +2578,8 @@ This is beautiful...if it could infer types more.
          "../camera.rkt")
 
 <<check-tuple=>>
+
+<<check-color=>>
 
 (define scene-test
   (test-suite
@@ -2742,16 +2752,17 @@ This is beautiful...if it could infer types more.
 (run-tests scene-test)
 #+END_SRC
 
-* NEXT Shadows
+* DONE Shadows
 :PROPERTIES:
 :ACTIVATED: [2022-08-18]
+:COMPLETED: [2022-08-19]
 :END:
 ** DONE Lighting in Shadows
 :PROPERTIES:
 :ACTIVATED: [2022-08-18]
 :COMPLETED: [2022-08-18]
 :END:
-Edited the ~lighting~ block under prior heading.
+Edited the ~phong~ block under prior heading.
 
 ** DONE Testing for Shadows
 :PROPERTIES:
@@ -2779,8 +2790,18 @@ Now, my ~shade-intersection~ function already uses the total illumination from a
              [else #f])))
 #+END_SRC
 
-** TODO Rendering Shadows
-** TODO Putting It Together
+** DONE Rendering Shadows
+:PROPERTIES:
+:ACTIVATED: [2022-08-19]
+:COMPLETED: [2022-08-19]
+:END:
+Edited the ~shade-intersection~ block under prior heading.
+
+** DONE Putting It Together
+:PROPERTIES:
+:ACTIVATED: [2022-08-19]
+:COMPLETED: [2022-08-19]
+:END:
 
 #+NAME: light
 #+BEGIN_SRC racket :noweb yes :tangle light.rkt
@@ -2843,6 +2864,8 @@ Now, my ~shade-intersection~ function already uses the total illumination from a
 
 <<check-tuple=>>
 
+<<check-color=>>
+
 (define shadow-test
   (test-suite
    "Shadows"
@@ -2872,9 +2895,25 @@ Now, my ~shade-intersection~ function already uses the total illumination from a
                           (define w default-world)
                           (define p (pt -2. 2. -2.))
                           (check-false (is-shadowed w (car (hash-values (world-lights w))) p))))
-   (test-suite "Rendering Shadows"
-               (test-case "shade-hit is given an intersection in shadow")
-               (test-case "The hit should offset the point"))))
+   (test-suite
+    "Rendering Shadows"
+    (test-case "shade-hit is given an intersection in shadow"
+               (define s2 (sphere "s2" #:transformation (translate 0. 0. 0.)))
+               (define w
+                 (make-world (list (sphere "s1") s2)
+                             (list (point-light "l1" (pt 0. 0. -10.) (color 1. 1. 1.)))))
+               (define r (ray (pt 0. 0. 5.) (vec 0. 0. 1.)))
+               (define i (intersection 4. s2))
+               (define c (shade-intersection w (precomp i r)))
+               (check-color= c (color 0.1 0.1 0.1)))
+    (test-case "The hit should offset the point"
+               (define r (ray (pt 0. 0. -5.) (vec 0. 0. 1.)))
+               (define s (sphere "s" #:transformation (translate 0. 0. 1.)))
+               (define i (intersection 5. s))
+               (define comps (precomp i r))
+               (check-true (< (tuple-z (intersection-data-over-pt comps)) (- (/ 0.00001 2))))
+               (check-true (> (tuple-z (intersection-data-point comps))
+                              (tuple-z (intersection-data-over-pt comps))))))))
 
 (run-tests shadow-test)
 #+END_SRC

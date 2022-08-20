@@ -46,14 +46,15 @@
           #:material (make-material #:color (color 1. 0.8 0.1) #:diffuse 0.7 #:specular 0.3)))
 
 (define world
-  (add-lights (add-objects (make-world) floor left-wall right-wall middle right left)
-             (point-light "white-above-left" (pt -10. 10. -10.) (color 1. 1. 1.))))
+  (make-world (list floor left-wall right-wall middle right left)
+              (list (point-light "white-above-left" (pt -10. 10. -10.) (color 1. 1. 1.))
+                    (point-light "orange-above-right" (pt 5. 10. -10.) (color 1. 0.65 0.)))))
 
 (define camera
   (make-camera #:hsize 500
                #:vsize 250
                #:fov (/ pi 3)
                #:transform (view-transformation (pt 0. 1.5 -5.) (pt 0. 1. 0.) (vec 0. 1. 0.))
-               #:aparture-size 0.01))
+               #:aparture-size 0.005))
 
 (save-canvas (render world camera 6) "test.ppm")

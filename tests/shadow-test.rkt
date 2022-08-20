@@ -58,16 +58,24 @@
                           (define w default-world)
                           (define p (pt -2. 2. -2.))
                           (check-false (is-shadowed w (car (hash-values (world-lights w))) p))))
-   (test-suite "Rendering Shadows"
-               (test-case "shade-hit is given an intersection in shadow"
-                          (define s2 (sphere "s2" #:transformation (translate 0. 0. 0.)))
-                          (define w
-                            (make-world (list (sphere "s1") s2)
-                                        (list (point-light "l1" (pt 0. 0. -10.) (color 1. 1. 1.)))))
-                          (define r (ray (pt 0. 0. 5.) (vec 0. 0. 1.)))
-                          (define i (intersection 4. s2))
-                          (define c (shade-intersection w (precomp i r)))
-                          (check-color= c (color 0.1 0.1 0.1)))
-               (test-case "The hit should offset the point"))))
+   (test-suite
+    "Rendering Shadows"
+    (test-case "shade-hit is given an intersection in shadow"
+               (define s2 (sphere "s2" #:transformation (translate 0. 0. 0.)))
+               (define w
+                 (make-world (list (sphere "s1") s2)
+                             (list (point-light "l1" (pt 0. 0. -10.) (color 1. 1. 1.)))))
+               (define r (ray (pt 0. 0. 5.) (vec 0. 0. 1.)))
+               (define i (intersection 4. s2))
+               (define c (shade-intersection w (precomp i r)))
+               (check-color= c (color 0.1 0.1 0.1)))
+    (test-case "The hit should offset the point"
+               (define r (ray (pt 0. 0. -5.) (vec 0. 0. 1.)))
+               (define s (sphere "s" #:transformation (translate 0. 0. 1.)))
+               (define i (intersection 5. s))
+               (define comps (precomp i r))
+               (check-true (< (tuple-z (intersection-data-over-pt comps)) (- (/ 0.00001 2))))
+               (check-true (> (tuple-z (intersection-data-point comps))
+                              (tuple-z (intersection-data-over-pt comps))))))))
 
 (run-tests shadow-test)
