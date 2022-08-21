@@ -12,18 +12,9 @@
 
 (: intersect (-> Shape Ray (Listof Intersection)))
 (define (intersect shape ray)
-  (let* ([ray : Ray (transform-ray ray (inverse (shape-transformation shape)))]
-         [center-to-ray : Vector (assert (tuple- (ray-origin ray) (pt 0. 0. 0.)) vect?)]
-         [a : Float (dot* (ray-direction ray) (ray-direction ray))]
-         [b : Float (* 2 (dot* (ray-direction ray) center-to-ray))]
-         [c : Float (- (dot* center-to-ray center-to-ray) 1)]
-         [discriminant : Float (- (sqr b) (* 4. a c))]
-         [solution : (-> (U '+ '-) Float)
-          (lambda (sign)
-            (cast (/ ((if (eq? sign '-) - +) (- b) (sqrt discriminant)) (* 2 a)) Float))])
-    (if (< discriminant 0.)
-        '()
-        (list (intersection (solution '-) shape) (intersection (solution '+) shape)))))
+  (let ([local-ray : Ray
+         (transform-ray ray (inverse (shape-transformation shape)))])
+    (map (lambda ([t : Float]) (intersection t shape)) ((shape-intersect shape) local-ray))))
 
 (: hit (-> (Listof Intersection) (U Intersection Null)))
 (define (hit intersections)

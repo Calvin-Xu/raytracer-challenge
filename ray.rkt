@@ -3,7 +3,6 @@
 (require "tuples.rkt")
 (require "matrix.rkt")
 (require "transform.rkt")
-(require "shapes.rkt")
 
 (struct ray ([origin : Point] [direction : Vector]) #:prefab #:type-name Ray)
 
