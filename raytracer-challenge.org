@@ -57,6 +57,20 @@ The constructors that accept ~Real~ are written so that Typed Racket accepts num
     [else (tuple x y z w)]))
 #+END_SRC
 
+Some failed attempt to generate propositions for the typechecker:
+
+#+BEGIN_SRC racket :noweb yes
+(: pt? (-> Any Boolean : Point))
+(define (pt? t)
+  (with-handlers ([exn:fail? (lambda (exn) #f)])
+    (= (assert (tuple-w (assert t point?)) number?) 1.)))
+
+(: vec? (-> Any Boolean : Vector))
+(define (vec? t)
+  (with-handlers ([exn:fail? (lambda (exn) #f)])
+    (= (assert (tuple-w (assert t vect?)) number?) 0.)))
+#+END_SRC
+
 We can compare floats in ~rackunit~ with [[https://docs.racket-lang.org/rackunit/api.html#(def._((lib._rackunit/main..rkt)._check-~3d))][(check-= v1 v2 epsilon)]]:
 
 #+begin_example
