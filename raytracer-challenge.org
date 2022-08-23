@@ -318,6 +318,8 @@ Position: '#s((point tuple 4) 10.11370849898476 0.3137084989847604 0.0 1.0)
 #lang typed/racket
 (provide (all-defined-out))
 
+(define EPSILON 0.00001)
+
 <<tuple-base>>
 
 <<f=>>
@@ -2276,7 +2278,6 @@ This is beautiful...if it could infer types more.
 
 (: precomp (-> Intersection Ray IntersectionData))
 (define (precomp intersection ray)
-  (define EPSILON 0.00001)
   (let* ([t (intersection-t intersection)]
          [object (intersection-obj intersection)]
          [point (pos ray t)]
@@ -2930,7 +2931,11 @@ Edited the ~shade-intersection~ block under prior heading.
 :PROPERTIES:
 :ACTIVATED: [2022-08-21]
 :END:
-** TODO Refactoring Shapes
+** DONE Refactoring Shapes
+:PROPERTIES:
+:ACTIVATED: [2022-08-21]
+:COMPLETED: [2022-08-21]
+:END:
 #+NAME: shapes-base
 #+BEGIN_SRC racket :noweb yes
 (struct shape
@@ -2940,6 +2945,10 @@ Edited the ~shade-intersection~ block under prior heading.
                        [normal-at : (-> Point Vector)])
   #:prefab
   #:type-name Shape)
+#+END_SRC
+
+#+NAME: sphere
+#+BEGIN_SRC racket :noweb yes
 (struct _sphere shape () #:prefab #:type-name Sphere)
 
 (: sphere (->* (String) (#:transformation Matrix #:material Material) Shape))
@@ -2960,8 +2969,8 @@ Edited the ~shade-intersection~ block under prior heading.
           '()
           (list (solution '-) (solution '+)))))
   (: sphere-normal-at (-> Point Vector))
-  (define (sphere-normal-at obj-pt)
-    (assert (tuple- obj-pt (pt 0. 0. 0.)) vect?))
+  (define (sphere-normal-at point)
+    (assert (tuple- point (pt 0. 0. 0.)) vect?))
   (_sphere id transformation material sphere-intersect sphere-normal-at))
 #+END_SRC
 
@@ -3001,7 +3010,28 @@ Edited the ~shade-intersection~ block under prior heading.
     (norm (vec (tuple-x world-norm) (tuple-y world-norm) (tuple-z world-norm)))))
 #+END_SRC
 
-** TODO Implementing a Plane
+** DONE Implementing a Plane
+:PROPERTIES:
+:ACTIVATED: [2022-08-23]
+:COMPLETED: [2022-08-23]
+:END:
+#+NAME: plane
+#+BEGIN_SRC racket :noweb yes
+(struct _plane shape () #:prefab #:type-name Plane)
+
+(: plane (->* (String) (#:transformation Matrix #:material Material) Shape))
+(define (plane id #:transformation [transformation id-mat-4] #:material [material (make-material)])
+  (: plane-intersect (-> Ray (Listof Float)))
+  (define (plane-intersect ray)
+    (if (< (abs (tuple-y (ray-direction ray))) EPSILON)
+        '()
+        (list (/ (- (tuple-y (ray-origin ray))) (tuple-y (ray-direction ray))))))
+  (: plane-normal-at (-> Point Vector))
+  (define (plane-normal-at point)
+    (vec 0. 1. 0.))
+  (_plane id transformation material plane-intersect plane-normal-at))
+#+END_SRC
+
 ** TODO Putting It Together
 
 #+NAME: shapes
@@ -3014,6 +3044,10 @@ Edited the ~shade-intersection~ block under prior heading.
 (require "ray.rkt")
 
 <<shapes-base>>
+
+<<sphere>>
+
+<<plane>>
 
 <<set-transformation>>
 
@@ -3042,15 +3076,29 @@ Edited the ~shade-intersection~ block under prior heading.
 
 <<check-color=>>
 
-(define refactored-shapes-test
-  (test-suite
-   "Shapes"
-   ))
-
 (define planes-test
-  (test-suite
-   "Planes"
-   ))
+  (test-suite "Planes"
+              (test-case "The normal of a plane is constant everywhere"
+                         (define p (plane "p"))
+                         (check-tuple= ((shape-normal-at p) (pt 0. 0. 0.)) (vec 0. 1. 0.))
+                         (check-tuple= ((shape-normal-at p) (pt 10. 0. -10.)) (vec 0. 1. 0.))
+                         (check-tuple= ((shape-normal-at p) (pt -5. 0. 150.)) (vec 0. 1. 0.)))
+              (test-case "Intersect with a ray parallel to the plane"
+                         (define p (plane "p"))
+                         (define r (ray (pt 0. 10. 0.) (vec 0. 0. 1.)))
+                         (check-equal? ((shape-intersect p) r) '()))
+              (test-case "Intersect with a coplanar ray"
+                         (define p (plane "p"))
+                         (define r (ray (pt 0. 0. 0.) (vec 0. 0. 1.)))
+                         (check-equal? ((shape-intersect p) r) '()))
+              (test-case "A ray intersecting a plane from above"
+                         (define p (plane "p"))
+                         (define r (ray (pt 0. 1. 0.) (vec 0. -1. 0.)))
+                         (check-equal? ((shape-intersect p) r) '(1.)))
+              (test-case "A ray intersecting a plane from below"
+                         (define p (plane "p"))
+                         (define r (ray (pt 0. -1. 0.) (vec 0. 1. 0.)))
+                         (check-equal? ((shape-intersect p) r) '(1.)))))
 
 (run-tests planes-test)
 #+END_SRC

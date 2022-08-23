@@ -64,7 +64,6 @@
 
 (: precomp (-> Intersection Ray IntersectionData))
 (define (precomp intersection ray)
-  (define EPSILON 0.00001)
   (let* ([t (intersection-t intersection)]
          [object (intersection-obj intersection)]
          [point (pos ray t)]

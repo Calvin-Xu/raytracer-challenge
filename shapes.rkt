@@ -12,6 +12,7 @@
                        [normal-at : (-> Point Vector)])
   #:prefab
   #:type-name Shape)
+
 (struct _sphere shape () #:prefab #:type-name Sphere)
 
 (: sphere (->* (String) (#:transformation Matrix #:material Material) Shape))
@@ -32,9 +33,23 @@
           '()
           (list (solution '-) (solution '+)))))
   (: sphere-normal-at (-> Point Vector))
-  (define (sphere-normal-at obj-pt)
-    (assert (tuple- obj-pt (pt 0. 0. 0.)) vect?))
+  (define (sphere-normal-at point)
+    (assert (tuple- point (pt 0. 0. 0.)) vect?))
   (_sphere id transformation material sphere-intersect sphere-normal-at))
+
+(struct _plane shape () #:prefab #:type-name Plane)
+
+(: plane (->* (String) (#:transformation Matrix #:material Material) Shape))
+(define (plane id #:transformation [transformation id-mat-4] #:material [material (make-material)])
+  (: plane-intersect (-> Ray (Listof Float)))
+  (define (plane-intersect ray)
+    (if (< (abs (tuple-y (ray-direction ray))) EPSILON)
+        '()
+        (list (/ (- (tuple-y (ray-origin ray))) (tuple-y (ray-direction ray))))))
+  (: plane-normal-at (-> Point Vector))
+  (define (plane-normal-at point)
+    (vec 0. 1. 0.))
+  (_plane id transformation material plane-intersect plane-normal-at))
 
 (: set-transformation
    (-> (->* (String) (#:transformation Matrix #:material Material) Shape) Shape Matrix Shape))

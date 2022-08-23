@@ -1,6 +1,8 @@
 #lang typed/racket
 (provide (all-defined-out))
 
+(define EPSILON 0.00001)
+
 (struct tuple ([x : Float] [y : Float] [z : Float] [w : Float]) #:prefab #:type-name Tuple)
 (struct point tuple () #:prefab #:type-name Point)
 (struct vect tuple () #:prefab #:type-name Vector)
