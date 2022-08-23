@@ -684,7 +684,6 @@ Example: ~(save-canvas (build-canvas 10 10 (lambda (x y) (if (= x y) black white
 #+BEGIN_SRC racket :noweb yes :tangle color.rkt
 #lang typed/racket
 (provide (except-out (all-defined-out) color-op))
-(require "tuples.rkt")
 
 <<color-base>>
 
@@ -699,7 +698,6 @@ Example: ~(save-canvas (build-canvas 10 10 (lambda (x y) (if (= x y) black white
 (display
  "Warning: the mutable implementation of canvas has been deprecated; using canvas.rkt is strongly recommended\n")
 (provide (all-defined-out))
-(require "tuples.rkt")
 (require "color.rkt")
 
 <<canvas-mutable-base>>
@@ -711,7 +709,6 @@ Example: ~(save-canvas (build-canvas 10 10 (lambda (x y) (if (= x y) black white
 #+BEGIN_SRC racket :noweb yes :tangle canvas.rkt
 #lang typed/racket
 (provide (all-defined-out))
-(require "tuples.rkt")
 (require "color.rkt")
 
 <<canvas-immutable>>
@@ -2514,9 +2511,7 @@ This is beautiful...if it could infer types more.
 (provide (all-defined-out))
 (require "tuples.rkt")
 (require "color.rkt")
-(require "matrix.rkt")
 (require "transform.rkt")
-(require "ray.rkt")
 (require "material.rkt")
 (require "shapes.rkt")
 (require "light.rkt")
@@ -2527,10 +2522,7 @@ This is beautiful...if it could infer types more.
 #+BEGIN_SRC racket :noweb yes :tangle intersect.rkt
 #lang typed/racket
 (provide (all-defined-out))
-(require "tuples.rkt")
-(require "color.rkt")
 (require "matrix.rkt")
-(require "transform.rkt")
 (require "ray.rkt")
 (require "shapes.rkt")
 (require "world.rkt")
@@ -2554,7 +2546,6 @@ This is beautiful...if it could infer types more.
 (require "canvas.rkt")
 (require "ray.rkt")
 (require "shading.rkt")
-(require "intersect.rkt")
 (require "world.rkt")
 
 (define randgen (current-pseudo-random-generator))
@@ -2818,14 +2809,10 @@ Edited the ~shade-intersection~ block under prior heading.
 (provide (all-defined-out))
 (require "tuples.rkt")
 (require "color.rkt")
-(require "matrix.rkt")
-(require "shapes.rkt")
 
 <<light>>
 
 <<reflect>>
-
-<<normal-at>>
 #+END_SRC
 
 #+NAME: shading
@@ -2834,7 +2821,6 @@ Edited the ~shade-intersection~ block under prior heading.
 (provide (all-defined-out))
 (require "tuples.rkt")
 (require "color.rkt")
-(require "matrix.rkt")
 (require "ray.rkt")
 (require "intersect.rkt")
 (require "material.rkt")
@@ -3057,6 +3043,8 @@ Edited the ~shade-intersection~ block under prior heading.
 <<set-transformation>>
 
 <<set-material>>
+
+<<normal-at>>
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes :tangle tests/planes-test.rkt

@@ -6,7 +6,6 @@
 (require "canvas.rkt")
 (require "ray.rkt")
 (require "shading.rkt")
-(require "intersect.rkt")
 (require "world.rkt")
 
 (define randgen (current-pseudo-random-generator))

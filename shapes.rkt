@@ -60,3 +60,11 @@
    (-> (->* (String) (#:transformation Matrix #:material Material) Shape) Shape Material Shape))
 (define (set-material constructor val material)
   (constructor (shape-id val) #:transformation (shape-transformation val) #:material material))
+
+(: normal-at (-> Shape Point Vector))
+(define (normal-at obj world-point)
+  (let* ([trans : Matrix (shape-transformation obj)]
+         [obj-pt : Point (assert (mat-t* (inverse trans) world-point) point?)]
+         [obj-norm : Vector ((shape-normal-at obj) obj-pt)]
+         [world-norm : Tuple (mat-t* (transpose (inverse trans)) obj-norm)])
+    (norm (vec (tuple-x world-norm) (tuple-y world-norm) (tuple-z world-norm)))))

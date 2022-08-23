@@ -1,6 +1,5 @@
 #lang typed/racket
 (provide (all-defined-out))
-(require "tuples.rkt")
 (require "color.rkt")
 
 (struct canvas

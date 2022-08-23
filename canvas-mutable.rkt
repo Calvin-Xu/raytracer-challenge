@@ -2,7 +2,6 @@
 (display
  "Warning: the mutable implementation of canvas has been deprecated; using canvas.rkt is strongly recommended\n")
 (provide (all-defined-out))
-(require "tuples.rkt")
 (require "color.rkt")
 
 (struct _canvas

@@ -2,7 +2,6 @@
 (provide (all-defined-out))
 (require "tuples.rkt")
 (require "color.rkt")
-(require "matrix.rkt")
 (require "ray.rkt")
 (require "intersect.rkt")
 (require "material.rkt")

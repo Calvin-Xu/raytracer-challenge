@@ -1,9 +1,6 @@
 #lang typed/racket
 (provide (all-defined-out))
-(require "tuples.rkt")
-(require "color.rkt")
 (require "matrix.rkt")
-(require "transform.rkt")
 (require "ray.rkt")
 (require "shapes.rkt")
 (require "world.rkt")

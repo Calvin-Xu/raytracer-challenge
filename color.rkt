@@ -1,6 +1,5 @@
 #lang typed/racket
 (provide (except-out (all-defined-out) color-op))
-(require "tuples.rkt")
 
 (struct color ([r : Float] [g : Float] [b : Float]) #:prefab #:type-name Color)
 
