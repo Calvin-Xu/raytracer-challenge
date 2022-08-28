@@ -5,17 +5,18 @@
 (require "ray.rkt")
 (require "intersect.rkt")
 (require "material.rkt")
+(require "patterns.rkt")
 (require "shapes.rkt")
 (require "light.rkt")
 (require "world.rkt")
 
-(: phong (->* (Material Light Point Vector Vector) (Boolean) Color))
-(define (phong material light point eyev normalv [in-shadow #f])
-  (if in-shadow
-      (let ([ambient (material-ambient material)])
-        (color ambient ambient ambient))
-  (let* ([blended : Color
-          (color* (material-color material) (light-intensity light))]
+(: phong (->* (Material Shape Light Point Vector Vector) (Boolean) Color))
+(define (phong material object light point eyev normalv [in-shadow #f])
+  (let* ([pattern : Pattern (material-pattern material)]
+         [pattern-color : Color
+                        (pattern-at pattern object point)]
+         [blended : Color
+          (color* pattern-color (light-intensity light))]
          [ambient : Color
           (color* blended (material-ambient material))]
          [lightv : Vector
@@ -36,7 +37,9 @@
                     (color* (light-intensity light)
                             (* (material-specular material)
                                (cast (expt *reflect-eye (material-shininess material)) Float))))))])
-    (colors+ ambient diffuse specular))))
+    (if in-shadow
+        ambient
+        (colors+ ambient diffuse specular))))
 
 (: is-shadowed (-> World Light Point Boolean))
 (define (is-shadowed world light point)
@@ -76,14 +79,17 @@
 
 (: shade-intersection (-> World IntersectionData Color))
 (define (shade-intersection world comps)
-  (let ([per-light-shading : (Listof Color)
+  (let ([per-light-shading
+         :
+         (Listof Color)
          (for/list ([light : Light (in-hash-values (world-lights world))])
            (phong (shape-material (intersection-data-object comps))
-                     light
-                     (intersection-data-point comps)
-                     (intersection-data-eyev comps)
-                     (intersection-data-normalv comps)
-                     (is-shadowed world light (intersection-data-over-pt comps))))])
+                  (intersection-data-object comps)
+                  light
+                  (intersection-data-point comps)
+                  (intersection-data-eyev comps)
+                  (intersection-data-normalv comps)
+                  (is-shadowed world light (intersection-data-over-pt comps))))])
     (apply colors+ per-light-shading)))
 
 (: shade-ray (-> World Ray Color))

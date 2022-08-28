@@ -39,6 +39,6 @@
                #:vsize 720
                #:fov (/ pi 3)
                #:transform (view-transformation (pt 0. 1.5 -5.) (pt 0. 1. 0.) (vec 0. 1. 0.))
-               #:aparture-size 0.005))
+               #:aparture-size 0.001))
 
-(save-canvas (render world camera 1) "test.ppm")
+(save-canvas (render world camera 5) "test.ppm")

@@ -4,6 +4,8 @@
 (require "matrix.rkt")
 (require "material.rkt")
 (require "ray.rkt")
+(require "color.rkt")
+(require "patterns.rkt")
 
 (struct shape
         ([id : String] [transformation : Matrix]
@@ -68,3 +70,9 @@
          [obj-norm : Vector ((shape-normal-at obj) obj-pt)]
          [world-norm : Tuple (mat-t* (transpose (inverse trans)) obj-norm)])
     (norm (vec (tuple-x world-norm) (tuple-y world-norm) (tuple-z world-norm)))))
+
+(: pattern-at (-> Pattern Shape Point Color))
+(define (pattern-at pattern object point)
+  (let* ([obj-pt (mat-t* (inverse (shape-transformation object)) point)]
+         [pattern-pt (assert (mat-t* (inverse (pattern-transformation pattern)) obj-pt) point?)])
+    ((_pattern-color-at pattern) pattern-pt)))

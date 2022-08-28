@@ -29,6 +29,8 @@
         (f= (color-b c1) (color-b c2)))
    (format "Failure: colors not equal ~a ~a" c1 c2)))
 
+(define dummy (sphere "s"))
+
 (define shadow-test
   (test-suite
    "Shadows"
@@ -39,7 +41,7 @@
                           (define light (point-light "l" (pt 0. 0. -10.) (color 1. 1. 1.)))
                           (define in-shadow #t)
                           (check-color=
-                           (phong (make-material) light (pt 0. 0. 0.) eyev normalv in-shadow)
+                           (phong (make-material) dummy light (pt 0. 0. 0.) eyev normalv in-shadow)
                            (color 0.1 0.1 0.1))))
    (test-suite "Testing for Shadows"
                (test-case "There is no shadow when nothing is collinear with point and light"
