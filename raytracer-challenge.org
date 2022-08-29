@@ -11,6 +11,9 @@ My implementation will be in Typed Racket with unit tests in RackUnit. I will no
 
 The codeblocks are mostly tangled such that there is one ~.rkt~ file corresponding to one chapter of the book. Perhaps I'll refactor them to be more reasonable in the end.
 
+* TODO Future TODOs
+** TODO Overload operators
+** TODO Make rendering parallel
 * DONE Tuples, Points, and Vectors
 :PROPERTIES:
 :ACTIVATED: [2022-07-30]
@@ -468,13 +471,17 @@ I'd rather not reuse the tuple implementations...
 (define (color- c1 c2)
   (color-op - c1 c2))
 
-(: color* (-> Color (U Color Float) Color))
-(define (color* c arg)
-  (color-op * c (if (color? arg) arg (color arg arg arg))))
+(: scalar-helper (-> (U Color Float) Color))
+  (define (scalar-helper arg)
+    (if (color? arg) arg (color arg arg arg)))
+
+(: color* (-> (U Color Float) (U Color Float) Color))
+(define (color* arg1 arg2)
+  (color-op * (scalar-helper arg1) (scalar-helper arg2)))
 
 (: color/ (-> Color (U Color Float) Color))
-(define (color/ c arg)
-  (color-op / c (if (color? arg) arg (color arg arg arg))))
+(define (color/ arg1 arg2)
+  (color-op / (scalar-helper arg1) (scalar-helper arg2)))
 #+END_SRC
 #+NAME: colors
 #+BEGIN_SRC racket :noweb yes
@@ -683,7 +690,7 @@ Example: ~(save-canvas (build-canvas 10 10 (lambda (x y) (if (= x y) black white
 #+NAME: color
 #+BEGIN_SRC racket :noweb yes :tangle color.rkt
 #lang typed/racket
-(provide (except-out (all-defined-out) color-op))
+(provide (except-out (all-defined-out) color-op scalar-helper))
 
 <<color-base>>
 
@@ -3164,12 +3171,18 @@ Edited the ~shade-intersection~ block under prior heading.
   #:prefab
   #:type-name Pattern)
 
-(: pattern (->* ((U 'stripe 'gradient 'checker) (Listof Color)) (#:transformation Matrix) Pattern))
+(: pattern
+   (->* ((U 'stripe 'gradient 'ring 'checker 'plain) (Listof Color))
+        (#:transformation Matrix) Pattern))
 (define (pattern type
           colors
           #:transformation [transformation id-mat-4])
   (cond
     [(eq? type 'stripe) (stripe (cast colors (List Color Color)) transformation)]
+    [(eq? type 'gradient) (gradient (cast colors (List Color Color)) transformation)]
+    [(eq? type 'ring) (ring (cast colors (List Color Color)) transformation)]
+    [(eq? type 'checker) (checker (cast colors (List Color Color)) transformation)]
+    [(eq? type 'plain) (_pattern (lambda (point) (car colors)) id-mat-4)]
     [else (error "Illegal operation: no pattern type: " type)]))
 
 (define pattern-color-at _pattern-color-at)
@@ -3188,8 +3201,6 @@ Edited the ~shade-intersection~ block under prior heading.
 
 #+NAME: stripe
 #+BEGIN_SRC racket :noweb yes
-(struct _stripe _pattern () #:prefab #:type-name Stripe)
-
 (: stripe (-> (List Color Color) Matrix Pattern))
 (define (stripe colors transformation)
   (_pattern (lambda (point)
@@ -3211,7 +3222,7 @@ Edited the ~shade-intersection~ block under prior heading.
                           #:diffuse [diffuse 0.9]
                           #:specular [specular 0.9]
                           #:shininess [shininess 200.]
-                          #:pattern [pattern (_pattern (lambda (point) color) id-mat-4)])
+                          #:pattern [pattern (pattern 'plain (list color))])
   (material color ambient diffuse specular shininess pattern))
 #+END_SRC
 
@@ -3277,14 +3288,66 @@ Edited the ~shade-intersection~ block under prior heading.
 :ACTIVATED: [2022-08-27]
 :COMPLETED: [2022-08-27]
 :END:
-** TODO Making a Gradient Pattern
-** TODO Making a Ring Pattern
-** TODO Making a 3D Checker Pattern
+** DONE Making a Gradient Pattern
+:PROPERTIES:
+:ACTIVATED: [2022-08-28]
+:COMPLETED: [2022-08-28]
+:END:
+#+NAME: gradient
+#+BEGIN_SRC racket :noweb yes
+(: gradient (-> (List Color Color) Matrix Pattern))
+(define (gradient colors transformation)
+  (_pattern (lambda (point)
+              (let ([delta : Color
+                     (color- (second colors) (first colors))]
+                    [frac : Float
+                          (- (tuple-x point) (floor (tuple-x point)))])
+                (color+ (first colors) (color* delta frac))))
+            transformation))
+#+END_SRC
+
+** DONE Making a Ring Pattern
+:PROPERTIES:
+:ACTIVATED: [2022-08-28]
+:COMPLETED: [2022-08-29]
+:END:
+#+NAME: ring
+#+BEGIN_SRC racket :noweb yes
+(: ring (-> (List Color Color) Matrix Pattern))
+(define (ring colors transformation)
+  (_pattern
+   (lambda (point)
+     (if (= 0 (remainder (exact-floor (sqrt (+ (sqr (tuple-x point)) (sqr (tuple-z point))))) 2))
+         (first colors)
+         (second colors)))
+   transformation))
+#+END_SRC
+
+** DONE Making a 3D Checker Pattern
+:PROPERTIES:
+:ACTIVATED: [2022-08-29]
+:COMPLETED: [2022-08-29]
+:END:
+#+NAME: checker
+#+BEGIN_SRC racket :noweb yes
+(: checker (-> (List Color Color) Matrix Pattern))
+(define (checker colors transformation)
+  (_pattern (lambda (point)
+              (if (= 0
+                     (remainder (+ (exact-floor (tuple-x point))
+                                   (exact-floor (tuple-y point))
+                                   (exact-floor (tuple-z point)))
+                                2))
+                  (first colors)
+                  (second colors)))
+            transformation))
+#+END_SRC
+
 ** TODO Putting It Together
 
 #+BEGIN_SRC racket :noweb yes :tangle patterns.rkt
 #lang typed/racket
-(provide (except-out (all-defined-out) _stripe stripe))
+(provide (except-out (all-defined-out) stripe gradient ring checker))
 (require "tuples.rkt")
 (require "color.rkt")
 (require "matrix.rkt")
@@ -3292,6 +3355,12 @@ Edited the ~shade-intersection~ block under prior heading.
 <<pattern-base>>
 
 <<stripe>>
+
+<<gradient>>
+
+<<ring>>
+
+<<checker>>
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes :tangle tests/patterns-test.rkt
@@ -3318,8 +3387,6 @@ Edited the ~shade-intersection~ block under prior heading.
 <<check-color=>>
 
 (define dummy (sphere "s"))
-
-(struct _test-pattern _pattern () #:prefab #:type-name TestPattern)
 
 (: test-pattern (->* () (Matrix) Pattern))
 (define (test-pattern [transformation id-mat-4])
@@ -3398,7 +3465,40 @@ Edited the ~shade-intersection~ block under prior heading.
                (test-case "A pattern with both an object and a pattern transformation"
                           (define s (sphere "s" #:transformation (scale 2. 2. 2.)))
                           (define t (test-pattern (translate 0.5 1. 1.5)))
-                          (check-color= (pattern-at t s (pt 2.5 3. 3.5)) (color 0.75 0.5 0.25))))))
+                          (check-color= (pattern-at t s (pt 2.5 3. 3.5)) (color 0.75 0.5 0.25))))
+   (test-suite "Making a Gradient Pattern"
+               (test-case "A gradient linearly interpolates between colors"
+                          (define p
+                            (pattern 'gradient
+                              (list white black)))
+                          (check-color= (pattern-at p dummy (pt 0. 0. 0.)) white)
+                          (check-color= (pattern-at p dummy (pt 0.25 0. 0.)) (color 0.75 0.75 0.75))
+                          (check-color= (pattern-at p dummy (pt 0.5 0. 0.)) (color 0.5 0.5 0.5))
+                          (check-color= (pattern-at p dummy (pt 0.75 0. 0.)) (color 0.25 0.25 0.25))))
+   (test-suite "Making a Ring Pattern"
+               (test-case "A ring should extend in both x and z"
+                          (define p
+                            (pattern 'ring
+                              (list white black)))
+                          (check-color= (pattern-at p dummy (pt 0. 0. 0.)) white)
+                          (check-color= (pattern-at p dummy (pt 1. 0. 0.)) black)
+                          (check-color= (pattern-at p dummy (pt 0. 0. 1.)) black)
+                          (check-color= (pattern-at p dummy (pt 0.708 0. 0.708)) black)))
+   (test-suite "Making a 3D Checker Pattern"
+               (let ([p (pattern 'checker
+                          (list white black))])
+                 (test-case "Checkers should repeat in x"
+                            (check-color= (pattern-at p dummy (pt 0. 0. 0.)) white)
+                            (check-color= (pattern-at p dummy (pt 0.99 0. 0.)) white)
+                            (check-color= (pattern-at p dummy (pt 1.01 0. 0.)) black))
+                 (test-case "Checkers should repeat in y"
+                            (check-color= (pattern-at p dummy (pt 0. 0. 0.)) white)
+                            (check-color= (pattern-at p dummy (pt 0. 0.99 0.)) white)
+                            (check-color= (pattern-at p dummy (pt 0. 1.01 0.)) black))
+                 (test-case "Checkers should repeat in z"
+                            (check-color= (pattern-at p dummy (pt 0. 0. 0.)) white)
+                            (check-color= (pattern-at p dummy (pt 0. 0. 0.99)) white)
+                            (check-color= (pattern-at p dummy (pt 0. 0. 1.01)) black))))))
 
 (run-tests patterns-test)
 #+END_SRC

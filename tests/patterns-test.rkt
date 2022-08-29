@@ -32,8 +32,6 @@
 
 (define dummy (sphere "s"))
 
-(struct _test-pattern _pattern () #:prefab #:type-name TestPattern)
-
 (: test-pattern (->* () (Matrix) Pattern))
 (define (test-pattern [transformation id-mat-4])
   (_pattern (lambda (point) (color (tuple-x point) (tuple-y point) (tuple-z point))) transformation))
@@ -111,6 +109,39 @@
                (test-case "A pattern with both an object and a pattern transformation"
                           (define s (sphere "s" #:transformation (scale 2. 2. 2.)))
                           (define t (test-pattern (translate 0.5 1. 1.5)))
-                          (check-color= (pattern-at t s (pt 2.5 3. 3.5)) (color 0.75 0.5 0.25))))))
+                          (check-color= (pattern-at t s (pt 2.5 3. 3.5)) (color 0.75 0.5 0.25))))
+   (test-suite "Making a Gradient Pattern"
+               (test-case "A gradient linearly interpolates between colors"
+                          (define p
+                            (pattern 'gradient
+                              (list white black)))
+                          (check-color= (pattern-at p dummy (pt 0. 0. 0.)) white)
+                          (check-color= (pattern-at p dummy (pt 0.25 0. 0.)) (color 0.75 0.75 0.75))
+                          (check-color= (pattern-at p dummy (pt 0.5 0. 0.)) (color 0.5 0.5 0.5))
+                          (check-color= (pattern-at p dummy (pt 0.75 0. 0.)) (color 0.25 0.25 0.25))))
+   (test-suite "Making a Ring Pattern"
+               (test-case "A ring should extend in both x and z"
+                          (define p
+                            (pattern 'ring
+                              (list white black)))
+                          (check-color= (pattern-at p dummy (pt 0. 0. 0.)) white)
+                          (check-color= (pattern-at p dummy (pt 1. 0. 0.)) black)
+                          (check-color= (pattern-at p dummy (pt 0. 0. 1.)) black)
+                          (check-color= (pattern-at p dummy (pt 0.708 0. 0.708)) black)))
+   (test-suite "Making a 3D Checker Pattern"
+               (let ([p (pattern 'checker
+                          (list white black))])
+                 (test-case "Checkers should repeat in x"
+                            (check-color= (pattern-at p dummy (pt 0. 0. 0.)) white)
+                            (check-color= (pattern-at p dummy (pt 0.99 0. 0.)) white)
+                            (check-color= (pattern-at p dummy (pt 1.01 0. 0.)) black))
+                 (test-case "Checkers should repeat in y"
+                            (check-color= (pattern-at p dummy (pt 0. 0. 0.)) white)
+                            (check-color= (pattern-at p dummy (pt 0. 0.99 0.)) white)
+                            (check-color= (pattern-at p dummy (pt 0. 1.01 0.)) black))
+                 (test-case "Checkers should repeat in z"
+                            (check-color= (pattern-at p dummy (pt 0. 0. 0.)) white)
+                            (check-color= (pattern-at p dummy (pt 0. 0. 0.99)) white)
+                            (check-color= (pattern-at p dummy (pt 0. 0. 1.01)) black))))))
 
 (run-tests patterns-test)

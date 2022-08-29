@@ -1,5 +1,5 @@
 #lang typed/racket
-(provide (except-out (all-defined-out) color-op))
+(provide (except-out (all-defined-out) color-op scalar-helper))
 
 (struct color ([r : Float] [g : Float] [b : Float]) #:prefab #:type-name Color)
 
@@ -33,13 +33,17 @@
 (define (color- c1 c2)
   (color-op - c1 c2))
 
-(: color* (-> Color (U Color Float) Color))
-(define (color* c arg)
-  (color-op * c (if (color? arg) arg (color arg arg arg))))
+(: scalar-helper (-> (U Color Float) Color))
+  (define (scalar-helper arg)
+    (if (color? arg) arg (color arg arg arg)))
+
+(: color* (-> (U Color Float) (U Color Float) Color))
+(define (color* arg1 arg2)
+  (color-op * (scalar-helper arg1) (scalar-helper arg2)))
 
 (: color/ (-> Color (U Color Float) Color))
-(define (color/ c arg)
-  (color-op / c (if (color? arg) arg (color arg arg arg))))
+(define (color/ arg1 arg2)
+  (color-op / (scalar-helper arg1) (scalar-helper arg2)))
 
 (define black (color 0. 0. 0.))
 

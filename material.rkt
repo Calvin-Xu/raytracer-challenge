@@ -17,5 +17,5 @@
                           #:diffuse [diffuse 0.9]
                           #:specular [specular 0.9]
                           #:shininess [shininess 200.]
-                          #:pattern [pattern (_pattern (lambda (point) color) id-mat-4)])
+                          #:pattern [pattern (pattern 'plain (list color))])
   (material color ambient diffuse specular shininess pattern))
