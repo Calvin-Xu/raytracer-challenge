@@ -86,7 +86,7 @@
            (phong (shape-material (intersection-data-object comps))
                   (intersection-data-object comps)
                   light
-                  (intersection-data-point comps)
+                  (intersection-data-over-pt comps)
                   (intersection-data-eyev comps)
                   (intersection-data-normalv comps)
                   (is-shadowed world light (intersection-data-over-pt comps))))])
