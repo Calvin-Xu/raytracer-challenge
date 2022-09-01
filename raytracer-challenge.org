@@ -363,40 +363,6 @@ Position: '#s((point tuple 4) 10.11370849898476 0.3137084989847604 0.0 1.0)
 "Hit ground"
 #+end_example
 
-#+NAME: tuples
-#+BEGIN_SRC racket :noweb yes :tangle tuples.rkt
-#lang typed/racket
-(provide (all-defined-out))
-
-(define EPSILON 0.00001)
-
-<<tuple-base>>
-
-<<f=>>
-
-<<tuple+>>
-
-<<tuples+>>
-
-<<tuple->>
-
-<<tuples->>
-
-<<-tuple>>
-
-<<tuple*>>
-
-<<tuple/>>
-
-<<mag>>
-
-<<norm>>
-
-<<dot*>>
-
-<<cross*>>
-#+END_SRC
-
 #+BEGIN_SRC racket :noweb yes :tangle tests/tuples-test.rkt
 #lang typed/racket
 (require typed/rackunit
@@ -734,20 +700,8 @@ Example: ~(save-canvas (build-canvas 10 10 (lambda (x y) (if (= x y) black white
 (iter e p c 0)
 #+END_SRC
 
-#+NAME: color
-#+BEGIN_SRC racket :noweb yes :tangle color.rkt
-#lang typed/racket
-(provide (except-out (all-defined-out) color-op scalar-helper))
-
-<<color-base>>
-
-<<color-ops>>
-
-<<colors>>
-#+END_SRC
-
 #+NAME: canvas-mutable
-#+BEGIN_SRC racket :noweb yes :tangle canvas-mutable.rkt
+#+BEGIN_SRC racket :noweb yes :tangle "canvas-mutable.rkt"
 #lang typed/racket
 (display
  "Warning: the mutable implementation of canvas has been deprecated; using canvas.rkt is strongly recommended\n")
@@ -757,15 +711,6 @@ Example: ~(save-canvas (build-canvas 10 10 (lambda (x y) (if (= x y) black white
 <<canvas-mutable-base>>
 
 <<canvas-mutable-save>>
-#+END_SRC
-
-#+NAME: canvas
-#+BEGIN_SRC racket :noweb yes :tangle canvas.rkt
-#lang typed/racket
-(provide (all-defined-out))
-(require "color.rkt")
-
-<<canvas-immutable>>
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes :tangle tests/canvas-test.rkt
@@ -1137,35 +1082,6 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 1.0
 #+end_example
 
-#+NAME: matrix
-#+BEGIN_SRC racket :noweb yes :tangle matrix.rkt
-#lang typed/racket
-(provide (except-out (all-defined-out) det-2))
-(require "tuples.rkt")
-
-<<matrix-base>>
-
-<<build-matrix>>
-
-<<mat*>>
-
-<<mat-t*>>
-
-<<id-mat>>
-
-<<id-mat-4>>
-
-<<transpose>>
-
-<<submat>>
-
-<<det>>
-
-<<cofactor>>
-
-<<inverse>>
-#+END_SRC
-
 #+BEGIN_SRC racket :noweb yes :tangle tests/matrix-test.rkt
 #lang typed/racket
 (require typed/rackunit
@@ -1488,26 +1404,6 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 (save-canvas c "test.ppm")
 #+END_SRC
 
-#+NAME: transform
-#+BEGIN_SRC racket :noweb yes :tangle transform.rkt
-#lang typed/racket
-(provide (all-defined-out))
-(require "tuples.rkt")
-(require "matrix.rkt")
-
-<<translate>>
-
-<<scale>>
-
-<<rotate>>
-
-<<shear>>
-
-<<transform>>
-
-<<view-transformation>>
-#+END_SRC
-
 #+BEGIN_SRC racket :noweb yes :tangle tests/transform-test.rkt
 #lang typed/racket
 (require typed/rackunit
@@ -1775,19 +1671,6 @@ but it seems like type information is not available at marcro expansion; attempt
                 (if (null? xs) (color 1. 1. 1.) (color 1. 0. 0.)))))
 
 (save-canvas c "ray-sphere intersection.ppm")
-#+END_SRC
-
-#+NAME: ray
-#+BEGIN_SRC racket :noweb yes :tangle ray.rkt
-#lang typed/racket
-(provide (all-defined-out))
-(require "tuples.rkt")
-(require "matrix.rkt")
-(require "transform.rkt")
-
-<<ray-base>>
-
-<<transform-ray>>
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes :tangle no
@@ -2091,16 +1974,6 @@ Currently only handles spheres as do everything else.
                       (phong (shape-material object) light point eye normal))))))
 
 (save-canvas c "ray-sphere intersection.ppm")
-#+END_SRC
-
-#+BEGIN_SRC racket :noweb yes :tangle material.rkt
-#lang typed/racket
-(provide (all-defined-out))
-(require "color.rkt")
-(require "matrix.rkt")
-(require "patterns.rkt")
-
-<<material>>
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes :tangle no
@@ -2558,58 +2431,6 @@ This is beautiful...if it could infer types more.
 (save-canvas (render world camera 6) "test.ppm")
 #+END_SRC
 
-#+NAME: world
-#+BEGIN_SRC racket :noweb yes :tangle world.rkt
-#lang typed/racket
-(provide (all-defined-out))
-(require "tuples.rkt")
-(require "color.rkt")
-(require "transform.rkt")
-(require "material.rkt")
-(require "shapes.rkt")
-(require "light.rkt")
-
-<<world-base>>
-#+END_SRC
-
-#+BEGIN_SRC racket :noweb yes :tangle intersect.rkt
-#lang typed/racket
-(provide (all-defined-out))
-(require "matrix.rkt")
-(require "ray.rkt")
-(require "shapes.rkt")
-(require "world.rkt")
-
-<<intersection>>
-
-<<intersect>>
-
-<<hit>>
-
-<<intersect-world>>
-#+END_SRC
-
-#+NAME: camera
-#+BEGIN_SRC racket :noweb yes :tangle camera.rkt
-#lang typed/racket
-(provide (all-defined-out))
-(require "tuples.rkt")
-(require "matrix.rkt")
-(require "color.rkt")
-(require "canvas.rkt")
-(require "ray.rkt")
-(require "shading.rkt")
-(require "world.rkt")
-
-(define randgen (current-pseudo-random-generator))
-
-<<camera-base>>
-
-<<rays-to-pixel>>
-
-<<render>>
-#+END_SRC
-
 #+BEGIN_SRC racket :noweb yes :tangle tests/scene-test.rkt
 #lang typed/racket
 (require typed/rackunit
@@ -2856,43 +2677,6 @@ Edited the ~shade-intersection~ block under prior heading.
 :COMPLETED: [2022-08-19]
 :END:
 
-#+NAME: light
-#+BEGIN_SRC racket :noweb yes :tangle light.rkt
-#lang typed/racket
-(provide (all-defined-out))
-(require "tuples.rkt")
-(require "color.rkt")
-
-<<light>>
-
-<<reflect>>
-#+END_SRC
-
-#+NAME: shading
-#+BEGIN_SRC racket :noweb yes :tangle shading.rkt
-#lang typed/racket
-(provide (all-defined-out))
-(require "tuples.rkt")
-(require "color.rkt")
-(require "ray.rkt")
-(require "intersect.rkt")
-(require "material.rkt")
-(require "patterns.rkt")
-(require "shapes.rkt")
-(require "light.rkt")
-(require "world.rkt")
-
-<<phong>>
-
-<<is-shadowed>>
-
-<<precomp>>
-
-<<shade-intersection>>
-
-<<shade-ray>>
-#+END_SRC
-
 #+BEGIN_SRC racket :noweb yes :tangle tests/shadow-test.rkt
 #lang typed/racket
 (require typed/rackunit
@@ -3080,31 +2864,6 @@ Edited the ~shade-intersection~ block under prior heading.
 :ACTIVATED: [2022-08-23]
 :COMPLETED: [2022-08-23]
 :END:
-#+NAME: shapes
-#+BEGIN_SRC racket :noweb yes :tangle shapes.rkt
-#lang typed/racket
-(provide (all-defined-out))
-(require "tuples.rkt")
-(require "matrix.rkt")
-(require "material.rkt")
-(require "ray.rkt")
-(require "color.rkt")
-(require "patterns.rkt")
-
-<<shapes-base>>
-
-<<sphere>>
-
-<<plane>>
-
-<<set-transformation>>
-
-<<set-material>>
-
-<<normal-at>>
-
-<<pattern-at>>
-#+END_SRC
 
 #+BEGIN_SRC racket :noweb yes :tangle tests/planes-test.rkt
 #lang typed/racket
@@ -3396,24 +3155,6 @@ Edited the ~shade-intersection~ block under prior heading.
 :COMPLETED: [2022-08-31]
 :END:
 
-#+BEGIN_SRC racket :noweb yes :tangle patterns.rkt
-#lang typed/racket
-(provide (except-out (all-defined-out) stripe gradient ring checker))
-(require "tuples.rkt")
-(require "color.rkt")
-(require "matrix.rkt")
-
-<<pattern-base>>
-
-<<stripe>>
-
-<<gradient>>
-
-<<ring>>
-
-<<checker>>
-#+END_SRC
-
 #+BEGIN_SRC racket :noweb yes :tangle tests/patterns-test.rkt
 #lang typed/racket
 (require typed/rackunit
@@ -3665,3 +3406,266 @@ Edited the ~shade-intersection~ block under prior heading.
 ** Torus Primitive
 ** Wrapping It Up
 * Rendering the Cover Image
+* Tangled source blocks
+** Tuples
+#+BEGIN_SRC racket :noweb yes :tangle tuples.rkt
+#lang typed/racket
+(provide (all-defined-out))
+
+(define EPSILON 0.00001)
+
+<<tuple-base>>
+
+<<f=>>
+
+<<tuple+>>
+
+<<tuples+>>
+
+<<tuple->>
+
+<<tuples->>
+
+<<-tuple>>
+
+<<tuple*>>
+
+<<tuple/>>
+
+<<mag>>
+
+<<norm>>
+
+<<dot*>>
+
+<<cross*>>
+
+<<reflect>>
+#+END_SRC
+
+** Color
+#+BEGIN_SRC racket :noweb yes :tangle color.rkt
+#lang typed/racket
+(provide (except-out (all-defined-out) color-op scalar-helper))
+
+<<color-base>>
+
+<<color-ops>>
+
+<<colors>>
+#+END_SRC
+
+** Canvas
+#+BEGIN_SRC racket :noweb yes :tangle canvas.rkt
+#lang typed/racket
+(provide (all-defined-out))
+(require "color.rkt")
+
+<<canvas-immutable>>
+#+END_SRC
+
+** Matrix
+#+BEGIN_SRC racket :noweb yes :tangle matrix.rkt
+#lang typed/racket
+(provide (except-out (all-defined-out) det-2))
+(require "tuples.rkt")
+
+<<matrix-base>>
+
+<<build-matrix>>
+
+<<mat*>>
+
+<<mat-t*>>
+
+<<id-mat>>
+
+<<id-mat-4>>
+
+<<transpose>>
+
+<<submat>>
+
+<<det>>
+
+<<cofactor>>
+
+<<inverse>>
+#+END_SRC
+
+** Transform
+#+BEGIN_SRC racket :noweb yes :tangle transform.rkt
+#lang typed/racket
+(provide (all-defined-out))
+(require "tuples.rkt")
+(require "matrix.rkt")
+
+<<translate>>
+
+<<scale>>
+
+<<rotate>>
+
+<<shear>>
+
+<<transform>>
+
+<<view-transformation>>
+#+END_SRC
+
+** Ray
+#+BEGIN_SRC racket :noweb yes :tangle ray.rkt
+#lang typed/racket
+(provide (all-defined-out))
+(require "tuples.rkt")
+(require "matrix.rkt")
+(require "transform.rkt")
+
+<<ray-base>>
+
+<<transform-ray>>
+#+END_SRC
+
+** Material
+#+BEGIN_SRC racket :noweb yes :tangle material.rkt
+#lang typed/racket
+(provide (all-defined-out))
+(require "color.rkt")
+(require "matrix.rkt")
+(require "patterns.rkt")
+
+<<material>>
+#+END_SRC
+
+** World
+#+BEGIN_SRC racket :noweb yes :tangle world.rkt
+#lang typed/racket
+(provide (all-defined-out))
+(require "tuples.rkt")
+(require "color.rkt")
+(require "transform.rkt")
+(require "material.rkt")
+(require "shapes.rkt")
+(require "light.rkt")
+
+<<world-base>>
+#+END_SRC
+
+** Intersect
+#+BEGIN_SRC racket :noweb yes :tangle intersect.rkt
+#lang typed/racket
+(provide (all-defined-out))
+(require "matrix.rkt")
+(require "ray.rkt")
+(require "shapes.rkt")
+(require "world.rkt")
+
+<<intersection>>
+
+<<intersect>>
+
+<<hit>>
+
+<<intersect-world>>
+#+END_SRC
+
+** Camera
+#+BEGIN_SRC racket :noweb yes :tangle camera.rkt
+#lang typed/racket
+(provide (all-defined-out))
+(require "tuples.rkt")
+(require "matrix.rkt")
+(require "color.rkt")
+(require "canvas.rkt")
+(require "ray.rkt")
+(require "shading.rkt")
+(require "world.rkt")
+
+(define randgen (current-pseudo-random-generator))
+
+<<camera-base>>
+
+<<rays-to-pixel>>
+
+<<render>>
+#+END_SRC
+
+** Light
+#+BEGIN_SRC racket :noweb yes :tangle light.rkt
+#lang typed/racket
+(provide (all-defined-out))
+(require "tuples.rkt")
+(require "color.rkt")
+
+<<light>>
+#+END_SRC
+
+** Shading
+#+BEGIN_SRC racket :noweb yes :tangle shading.rkt
+#lang typed/racket
+(provide (all-defined-out))
+(require "tuples.rkt")
+(require "color.rkt")
+(require "ray.rkt")
+(require "intersect.rkt")
+(require "material.rkt")
+(require "patterns.rkt")
+(require "shapes.rkt")
+(require "light.rkt")
+(require "world.rkt")
+
+<<phong>>
+
+<<is-shadowed>>
+
+<<precomp>>
+
+<<shade-intersection>>
+
+<<shade-ray>>
+#+END_SRC
+
+** Shapes
+#+BEGIN_SRC racket :noweb yes :tangle shapes.rkt
+#lang typed/racket
+(provide (all-defined-out))
+(require "tuples.rkt")
+(require "matrix.rkt")
+(require "material.rkt")
+(require "ray.rkt")
+(require "color.rkt")
+(require "patterns.rkt")
+
+<<shapes-base>>
+
+<<sphere>>
+
+<<plane>>
+
+<<set-transformation>>
+
+<<set-material>>
+
+<<normal-at>>
+
+<<pattern-at>>
+#+END_SRC
+
+** Patterns
+#+BEGIN_SRC racket :noweb yes :tangle patterns.rkt
+#lang typed/racket
+(provide (except-out (all-defined-out) stripe gradient ring checker))
+(require "tuples.rkt")
+(require "color.rkt")
+(require "matrix.rkt")
+
+<<pattern-base>>
+
+<<stripe>>
+
+<<gradient>>
+
+<<ring>>
+
+<<checker>>
+#+END_SRC
