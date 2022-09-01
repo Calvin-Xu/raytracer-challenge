@@ -71,16 +71,42 @@
                  [offset (sign (* random (camera-aparture-size c)))])
             ((inst cons Ray) (make-ray (pt offset offset 0.)) rays))))))
 
-(: render (->* (World Camera) (Exact-Positive-Integer) Canvas))
-(define (render w c [nrays 1])
-  (build-canvas (camera-hsize c)
-                (camera-vsize c)
-                (lambda (x y)
-                  (let* ([rays : (Listof Ray) (rays-to-pixel c x y nrays)]
-                         [colors : (Listof Color)
-                          (map (lambda ([ray : Ray]) (shade-ray w ray)) rays)]
-                         [average : Color
-                          (if (= nrays 1)
-                              (car colors)
-                              (color/ (apply colors+ colors) (exact->inexact (length rays))))])
-                    average))))
+(require racket/future)
+
+(: render (->* (World Camera) (Exact-Positive-Integer Exact-Positive-Integer) Canvas))
+(define (render w c [n-rays 1] [n-threads 1])
+  (: render-pixel (-> Exact-Nonnegative-Integer Exact-Nonnegative-Integer Color))
+  (define (render-pixel x y)
+    (let* ([rays : (Listof Ray)
+            (rays-to-pixel c x y n-rays)]
+           [colors : (Listof Color)
+            (map (lambda ([ray : Ray]) (shade-ray w ray)) rays)]
+           [average : Color
+            (if (= n-rays 1)
+                (car colors)
+                (color/ (apply colors+ colors) (exact->inexact (length rays))))])
+      average))
+  (let* ([width (camera-hsize c)]
+         [height (camera-vsize c)]
+         [n-total (* width height)]
+         [n-each (quotient n-total n-threads)])
+    (: render-slice (-> Exact-Nonnegative-Integer Exact-Nonnegative-Integer (Vectorof Color)))
+    (define (render-slice n-todo n-before)
+      (build-vector n-todo
+                    (lambda ([n : Exact-Nonnegative-Integer])
+                      (render-pixel (remainder (+ n n-before) width)
+                                    (quotient (+ n n-before) width)))))
+    (let ([slices : (Listof (Futureof (Vectorof Color)))
+           (for/fold ([acc : (Listof (Futureof (Vectorof Color)))
+                           '()]
+                      #:result (reverse acc))
+                     ([i (in-range 0 n-threads)])
+             (cons ((inst future (Vectorof Color))
+                    (thunk (render-slice n-each (assert (* n-each i) nonnegative-integer?))))
+                   acc))])
+      (canvas width
+              height
+              (vector->immutable-vector
+               (vector-append (apply vector-append (map (inst touch (Vectorof Color)) slices))
+                              (render-slice (+ n-each (remainder n-total n-threads))
+                                            (* (sub1 n-threads) n-each))))))))

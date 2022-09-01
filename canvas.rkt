@@ -20,7 +20,7 @@
           (vector->immutable-vector
            (build-vector (ann (* width height) Integer)
                          (lambda ([n : Exact-Nonnegative-Integer])
-                           (f (remainder n width) (exact-floor (/ n width))))))))
+                           (f (remainder n width) (quotient n width)))))))
 
 (: pixel-at (-> Canvas Exact-Nonnegative-Integer Exact-Nonnegative-Integer Color))
 (define (pixel-at canvas x y)
