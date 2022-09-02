@@ -110,3 +110,7 @@
   (vec (- (* (tuple-y v1) (tuple-z v2)) (* (tuple-z v1) (tuple-y v2)))
        (- (* (tuple-z v1) (tuple-x v2)) (* (tuple-x v1) (tuple-z v2)))
        (- (* (tuple-x v1) (tuple-y v2)) (* (tuple-y v1) (tuple-x v2)))))
+
+(: reflect (-> Vector Vector Vector))
+(define (reflect in normal)
+  (assert (tuple- in (tuple* normal (* 2 (dot* in normal)))) vect?))

@@ -32,12 +32,8 @@
     (apply add-objects (apply add-lights empty lights) objects)))
 
 (define default-world
-  (let* ([w1 (make-world)]
-         [w2 (add-lights w1 (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))]
-         [w3 (add-objects w2
-                         (sphere "outer concentric sphere"
-                                 #:material (make-material #:color (color 0.8 1.0 0.6)
-                                                              #:diffuse 0.7
-                                                              #:specular 0.2)))]
-         [w4 (add-objects w3 (sphere "inner concentric sphere" #:transformation (scale 0.5 0.5 0.5)))])
-    w4))
+  (make-world
+   (list (sphere "outer concentric sphere"
+                 #:material (make-material #:color (color 0.8 1.0 0.6) #:diffuse 0.7 #:specular 0.2))
+         (sphere "inner concentric sphere" #:transformation (scale 0.5 0.5 0.5)))
+   (list (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))))

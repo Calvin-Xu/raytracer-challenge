@@ -97,8 +97,7 @@
                       (render-pixel (remainder (+ n n-before) width)
                                     (quotient (+ n n-before) width)))))
     (let ([slices : (Listof (Futureof (Vectorof Color)))
-           (for/fold ([acc : (Listof (Futureof (Vectorof Color)))
-                           '()]
+           (for/fold ([acc : (Listof (Futureof (Vectorof Color))) '()]
                       #:result (reverse acc))
                      ([i (in-range 0 n-threads)])
              (cons ((inst future (Vectorof Color))

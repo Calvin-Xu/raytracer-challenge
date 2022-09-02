@@ -59,6 +59,7 @@
                      [point : Point]
                      [eyev : Vector]
                      [normalv : Vector]
+                     [reflectv : Vector]
                      [inside : Boolean]
                      [over-pt : Point])
   #:prefab
@@ -74,31 +75,43 @@
          [-normalv (assert (-tuple normalv) vect?)]
          [inside (if (< (dot* normalv eyev) 0.) #t #f)]
          [adjusted-normalv (if inside -normalv normalv)]
+         [reflectv (reflect (ray-direction ray) adjusted-normalv)]
          [over-pt (assert (tuple+ point (tuple* adjusted-normalv EPSILON)) point?)])
-    (intersection-data t object point eyev adjusted-normalv inside over-pt)))
+    (intersection-data t object point eyev adjusted-normalv reflectv inside over-pt)))
 
-(: shade-intersection (-> World IntersectionData Color))
-(define (shade-intersection world comps)
+(: shade-intersection (->* (World IntersectionData) (Exact-Nonnegative-Integer) Color))
+(define (shade-intersection world comps [remaining 5])
   (let ([per-light-shading
          :
          (Listof Color)
          (for/list ([light : Light (in-hash-values (world-lights world))])
-           (phong (shape-material (intersection-data-object comps))
-                  (intersection-data-object comps)
-                  light
-                  (intersection-data-over-pt comps)
-                  (intersection-data-eyev comps)
-                  (intersection-data-normalv comps)
-                  (is-shadowed world light (intersection-data-over-pt comps))))])
+           (colors+ (phong (shape-material (intersection-data-object comps))
+                           (intersection-data-object comps)
+                           light
+                           (intersection-data-over-pt comps)
+                           (intersection-data-eyev comps)
+                           (intersection-data-normalv comps)
+                           (is-shadowed world light (intersection-data-over-pt comps)))
+                    (shade-reflection world comps remaining)))])
     (apply colors+ per-light-shading)))
 
-(: shade-ray (-> World Ray Color))
-(define (shade-ray world ray)
+(: shade-ray (->* (World Ray) (Exact-Nonnegative-Integer) Color))
+(define (shade-ray world ray [remaining 5])
   (let* ([intersections : (Listof Intersection) (intersect-world world ray)]
          ;; sorted intersections
          [hit : (U Intersection Null) (fast-hit intersections)])
     (if (null? hit)
         black
         (let* ([precomp : IntersectionData (precomp hit ray)]
-               [shade : Color (shade-intersection world precomp)])
+               [shade : Color (shade-intersection world precomp remaining)])
           shade))))
+
+(: shade-reflection (-> World IntersectionData Exact-Nonnegative-Integer Color))
+(define (shade-reflection world comps remaining)
+  (let ([reflective (material-reflective (shape-material (intersection-data-object comps)))])
+    (if (or (= 0 reflective) (< remaining 1))
+        black
+        (let* ([reflect-ray (ray (intersection-data-over-pt comps)
+                                 (intersection-data-reflectv comps))]
+               [reflect-color (shade-ray world reflect-ray (sub1 remaining))])
+          (color* reflect-color reflective)))))

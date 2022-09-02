@@ -46,8 +46,7 @@ The codeblocks are mostly tangled such that there is one ~.rkt~ file correspondi
                       (render-pixel (remainder (+ n n-before) width)
                                     (quotient (+ n n-before) width)))))
     (let ([slices : (Listof (Futureof (Vectorof Color)))
-           (for/fold ([acc : (Listof (Futureof (Vectorof Color)))
-                           '()]
+           (for/fold ([acc : (Listof (Futureof (Vectorof Color))) '()]
                       #:result (reverse acc))
                      ([i (in-range 0 n-threads)])
              (cons ((inst future (Vectorof Color))
@@ -2163,15 +2162,11 @@ Let's use hash tables because I also want to try them out:
     (apply add-objects (apply add-lights empty lights) objects)))
 
 (define default-world
-  (let* ([w1 (make-world)]
-         [w2 (add-lights w1 (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))]
-         [w3 (add-objects w2
-                         (sphere "outer concentric sphere"
-                                 #:material (make-material #:color (color 0.8 1.0 0.6)
-                                                              #:diffuse 0.7
-                                                              #:specular 0.2)))]
-         [w4 (add-objects w3 (sphere "inner concentric sphere" #:transformation (scale 0.5 0.5 0.5)))])
-    w4))
+  (make-world
+   (list (sphere "outer concentric sphere"
+                 #:material (make-material #:color (color 0.8 1.0 0.6) #:diffuse 0.7 #:specular 0.2))
+         (sphere "inner concentric sphere" #:transformation (scale 0.5 0.5 0.5)))
+   (list (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))))
 #+END_SRC
 
 #+NAME: intersect-world
@@ -2186,7 +2181,6 @@ Let's use hash tables because I also want to try them out:
 
 This is beautiful...if it could infer types more.
 
-#+NAME: precomp
 #+BEGIN_SRC racket :noweb yes
 (struct intersection-data
         ([t : Float] [object : Shape]
@@ -2229,7 +2223,6 @@ This is beautiful...if it could infer types more.
     (apply colors+ per-light-shading)))
 #+END_SRC
 
-#+NAME: shade-ray
 #+BEGIN_SRC racket :noweb yes
 (: shade-ray (-> World Ray Color))
 (define (shade-ray world ray)
@@ -3013,7 +3006,6 @@ Edited the ~shade-intersection~ block under prior heading.
               (if (= 0 (remainder (exact-floor (tuple-x point)) 2)) (first colors) (second colors))) transformation))
 #+END_SRC
 
-#+NAME: material
 #+BEGIN_SRC racket :noweb yes
 (struct material
         ([color : Color] [ambient : Float] [diffuse : Float] [specular : Float] [shininess : Float] [pattern : Pattern])
@@ -3066,7 +3058,6 @@ Edited the ~shade-intersection~ block under prior heading.
         (colors+ ambient diffuse specular))))
 #+END_SRC
 
-#+NAME: shade-intersection
 #+BEGIN_SRC racket :noweb yes
 (: shade-intersection (-> World IntersectionData Color))
 (define (shade-intersection world comps)
@@ -3313,6 +3304,7 @@ Edited the ~shade-intersection~ block under prior heading.
 (define common-material
   (make-material #:color (color 1. 0.9 0.9)
                  #:specular 0.
+                 #:reflective 0.5
                  #:pattern (pattern 'checker
                              (list white black)
                              #:transformation (rotate 'y (/ pi 4)))))
@@ -3325,6 +3317,7 @@ Edited the ~shade-intersection~ block under prior heading.
           #:material (make-material #:color (color 0.1 1. 0.5)
                                     #:diffuse 0.7
                                     #:specular 0.3
+                                    #:reflective 0.7
                                     #:pattern (pattern 'gradient
                                                 (list (color 0.1 0. 0.6) (color 1. 0. 0.1))
                                                 #:transformation (scale 0.5 0.5 0.5)))))
@@ -3335,6 +3328,7 @@ Edited the ~shade-intersection~ block under prior heading.
           #:material (make-material #:color (color 0.5 1. 0.1)
                                     #:diffuse 0.7
                                     #:specular 0.3
+                                    #:reflective 0.6
                                     #:pattern (pattern 'stripe
                                                 (list (color 0.4 0.8 0.1) (color 0. 0.4 0.8))
                                                 #:transformation (scale 0.2 0.2 0.2)))))
@@ -3345,6 +3339,7 @@ Edited the ~shade-intersection~ block under prior heading.
           #:material (make-material #:color (color 1. 0.8 0.1)
                                     #:diffuse 0.7
                                     #:specular 0.3
+                                    #:reflective 0.3
                                     #:pattern (pattern 'ring
                                                 (list (color 1. 0.6 0.2) (color 0.4 0.9 0.))
                                                 #:transformation (scale 0.2 0.2 0.2)))))
@@ -3361,14 +3356,205 @@ Edited the ~shade-intersection~ block under prior heading.
                #:transform (view-transformation (pt 0. 1.5 -5.) (pt 0. 1. 0.) (vec 0. 1. 0.))
                #:aparture-size 0.001))
 
-(save-canvas (render world camera 4) "test.ppm")
+(save-canvas (render world camera 4 10) "test.ppm")
 #+END_SRC
 
-* Reflection and Refraction
-** Reflection
-** Transparency and Refraction
-** Fresnel Effect
-** Putting It Together
+* NEXT Reflection and Refraction
+:PROPERTIES:
+:ACTIVATED: [2022-09-01]
+:END:
+** DONE Reflection
+:PROPERTIES:
+:ACTIVATED: [2022-09-01]
+:COMPLETED: [2022-09-01]
+:END:
+#+NAME: material
+#+BEGIN_SRC racket :noweb yes
+(struct material
+        ([color : Color] [ambient : Float] [diffuse : Float] [specular : Float] [shininess : Float] [reflective : Float] [pattern : Pattern])
+  #:prefab
+  #:type-name Material)
+
+(:
+ make-material
+ (->* () (#:color Color #:ambient Float #:diffuse Float #:specular Float #:shininess Float #:reflective Float #:pattern Pattern) Material))
+(define (make-material #:color [color (color 1. 1. 1.)]
+                          #:ambient [ambient 0.1]
+                          #:diffuse [diffuse 0.9]
+                          #:specular [specular 0.9]
+                          #:shininess [shininess 200.]
+                          #:reflective [reflective 0.]
+                          #:pattern [pattern (pattern 'plain (list color))])
+  (material color ambient diffuse specular shininess reflective pattern))
+#+END_SRC
+
+#+NAME: precomp
+#+BEGIN_SRC racket :noweb yes
+(struct intersection-data
+        ([t : Float] [object : Shape]
+                     [point : Point]
+                     [eyev : Vector]
+                     [normalv : Vector]
+                     [reflectv : Vector]
+                     [inside : Boolean]
+                     [over-pt : Point])
+  #:prefab
+  #:type-name IntersectionData)
+
+(: precomp (-> Intersection Ray IntersectionData))
+(define (precomp intersection ray)
+  (let* ([t (intersection-t intersection)]
+         [object (intersection-obj intersection)]
+         [point (pos ray t)]
+         [eyev (assert (-tuple (ray-direction ray)) vect?)]
+         [normalv (normal-at object point)]
+         [-normalv (assert (-tuple normalv) vect?)]
+         [inside (if (< (dot* normalv eyev) 0.) #t #f)]
+         [adjusted-normalv (if inside -normalv normalv)]
+         [reflectv (reflect (ray-direction ray) adjusted-normalv)]
+         [over-pt (assert (tuple+ point (tuple* adjusted-normalv EPSILON)) point?)])
+    (intersection-data t object point eyev adjusted-normalv reflectv inside over-pt)))
+#+END_SRC
+
+#+NAME: shade-reflection
+#+BEGIN_SRC racket :noweb yes
+(: shade-reflection (-> World IntersectionData Exact-Nonnegative-Integer Color))
+(define (shade-reflection world comps remaining)
+  (let ([reflective (material-reflective (shape-material (intersection-data-object comps)))])
+    (if (or (= 0 reflective) (< remaining 1))
+        black
+        (let* ([reflect-ray (ray (intersection-data-over-pt comps)
+                                 (intersection-data-reflectv comps))]
+               [reflect-color (shade-ray world reflect-ray (sub1 remaining))])
+          (color* reflect-color reflective)))))
+#+END_SRC
+
+#+NAME: shade-intersection
+#+BEGIN_SRC racket :noweb yes
+(: shade-intersection (->* (World IntersectionData) (Exact-Nonnegative-Integer) Color))
+(define (shade-intersection world comps [remaining 5])
+  (let ([per-light-shading
+         :
+         (Listof Color)
+         (for/list ([light : Light (in-hash-values (world-lights world))])
+           (colors+ (phong (shape-material (intersection-data-object comps))
+                           (intersection-data-object comps)
+                           light
+                           (intersection-data-over-pt comps)
+                           (intersection-data-eyev comps)
+                           (intersection-data-normalv comps)
+                           (is-shadowed world light (intersection-data-over-pt comps)))
+                    (shade-reflection world comps remaining)))])
+    (apply colors+ per-light-shading)))
+#+END_SRC
+
+#+NAME: shade-ray
+#+BEGIN_SRC racket :noweb yes
+(: shade-ray (->* (World Ray) (Exact-Nonnegative-Integer) Color))
+(define (shade-ray world ray [remaining 5])
+  (let* ([intersections : (Listof Intersection) (intersect-world world ray)]
+         ;; sorted intersections
+         [hit : (U Intersection Null) (fast-hit intersections)])
+    (if (null? hit)
+        black
+        (let* ([precomp : IntersectionData (precomp hit ray)]
+               [shade : Color (shade-intersection world precomp remaining)])
+          shade))))
+#+END_SRC
+
+** TODO Transparency and Refraction
+** TODO Fresnel Effect
+** TODO Putting It Together
+
+#+BEGIN_SRC racket :noweb yes :tangle tests/reflection-test.rkt
+#lang typed/racket
+(require typed/rackunit
+         typed/rackunit/text-ui
+         "../tuples.rkt"
+         "../color.rkt"
+         "../canvas.rkt"
+         "../matrix.rkt"
+         "../transform.rkt"
+         "../ray.rkt"
+         "../intersect.rkt"
+         "../light.rkt"
+         "../shading.rkt"
+         "../material.rkt"
+         "../shapes.rkt"
+         "../world.rkt"
+         "../camera.rkt"
+         "../patterns.rkt")
+
+<<check-tuple=>>
+
+<<check-color=>>
+
+(define reflection-test
+  (test-suite
+   "Reflection"
+   (test-case "Precomputing the reflection vector"
+              (define s (plane "p"))
+              (define r (ray (pt 0. 1. -1.) (vec 0. (- (/ (sqrt 2.) 2.)) (/ (sqrt 2.) 2.))))
+              (define i (intersection (sqrt 2.) s))
+              (define comps (precomp i r))
+              (check-tuple= (intersection-data-reflectv comps)
+                            (vec 0. (/ (sqrt 2.) 2.) (/ (sqrt 2.) 2.))))
+   (test-case
+    "The reflected color for a nonreflective material"
+    (define w
+      (make-world (list (sphere "outer concentric sphere"
+                                #:material (make-material #:color (color 0.8 1.0 0.6)
+                                                          #:ambient 1.
+                                                          #:diffuse 0.7
+                                                          #:specular 0.2))
+                        (sphere "inner concentric sphere" #:transformation (scale 0.5 0.5 0.5)))
+                  (list (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))))
+    (define r (ray (pt 0. 0. 0.) (vec 0. 0. 1.)))
+    (define i (intersection 1. (hash-ref (world-objects w) "outer concentric sphere")))
+    (define comps (precomp i r))
+    (check-color= (shade-reflection w comps 1) black))
+   (test-case
+    "The reflected color for a reflective material"
+    (define s
+      (plane "p" #:material (make-material #:reflective 0.5) #:transformation (translate 0. -1. 0.)))
+    (define w (add-objects default-world s))
+    (define r (ray (pt 0. 0. -3.) (vec 0. (- (/ (sqrt 2.) 2.)) (/ (sqrt 2.) 2.))))
+    (define i (intersection (sqrt 2.) s))
+    (define comps (precomp i r))
+    (check-color= (shade-reflection w comps 1) (color 0.19033 0.23792 0.14275)))
+   (test-case
+    "shade-intersection with a reflective material"
+    (define s
+      (plane "p" #:material (make-material #:reflective 0.5) #:transformation (translate 0. -1. 0.)))
+    (define w (add-objects default-world s))
+    (define r (ray (pt 0. 0. -3.) (vec 0. (- (/ (sqrt 2.) 2.)) (/ (sqrt 2.) 2.))))
+    (define i (intersection (sqrt 2.) s))
+    (define comps (precomp i r))
+    (check-color= (shade-intersection w comps) (color 0.87676 0.92434 0.82917)))
+   (test-case "shade-ray with mutually reflective surfaces"
+              (define w
+                (make-world (list (plane "lower"
+                                         #:material (make-material #:reflective 1.)
+                                         #:transformation (translate 0. -1. 0.))
+                                  (plane "upper"
+                                         #:material (make-material #:reflective 1.)
+                                         #:transformation (translate 0. 1. 0.)))
+                            (list (point-light "l" (pt 0. 0. 0.) white))))
+              (define r (ray (pt 0. 0. 0.) (vec 0. 1. 0.)))
+              (check-color= (shade-ray w r) (color 11.4 11.4 11.4)))
+   (test-case
+    "The reflected color at the maximum recursive depth"
+    (define s
+      (plane "p" #:material (make-material #:reflective 0.5) #:transformation (translate 0. -1. 0.)))
+    (define w (add-objects default-world s))
+    (define r (ray (pt 0. 0. -3.) (vec 0. (- (/ (sqrt 2.) 2.)) (/ (sqrt 2.) 2.))))
+    (define i (intersection (sqrt 2.) s))
+    (define comps (precomp i r))
+    (check-color= (shade-reflection w comps 0) black))))
+
+(run-tests reflection-test)
+#+END_SRC
+
 * Cubes
 ** Intersecting a Ray with a Cube
 ** Finding the Normal on a Cube
@@ -3623,6 +3809,8 @@ Edited the ~shade-intersection~ block under prior heading.
 <<shade-intersection>>
 
 <<shade-ray>>
+
+<<shade-reflection>>
 #+END_SRC
 
 ** Shapes
