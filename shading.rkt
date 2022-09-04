@@ -116,15 +116,24 @@
          :
          (Listof Color)
          (for/list ([light : Light (in-hash-values (world-lights world))])
-           (colors+ (phong (shape-material (intersection-data-object comps))
-                           (intersection-data-object comps)
-                           light
-                           (intersection-data-point+ comps)
-                           (intersection-data-eyev comps)
-                           (intersection-data-normalv comps)
-                           (is-shadowed world light (intersection-data-point+ comps)))
-                    (shade-reflection world comps remaining)
-                    (shade-refraction world comps remaining)))])
+           (let* ([material (shape-material (intersection-data-object comps))]
+                  [surface (phong material
+                                  (intersection-data-object comps)
+                                  light
+                                  (intersection-data-point comps)
+                                  (intersection-data-eyev comps)
+                                  (intersection-data-normalv comps)
+                                  (is-shadowed world light (intersection-data-point+ comps))
+                                  (intersection-data-point- comps))]
+                  [reflected (shade-reflection world comps remaining)]
+                  [refracted (shade-refraction world comps remaining)]
+                  [reflectance (reflectance comps)])
+             (if (and (positive? (material-reflective material))
+                      (positive? (material-transparency material)))
+                 (colors+ surface
+                            (color* reflected reflectance)
+                            (color* refracted (- 1. reflectance)))
+                 (colors+ surface reflected refracted))))])
     (apply colors+ per-light-shading)))
 
 (: shade-ray (->* (World Ray) (Exact-Nonnegative-Integer) Color))
@@ -170,3 +179,21 @@
                 (color* (shade-ray world refracted (sub1 remaining))
                         (material-transparency (shape-material (intersection-data-object
                                                                 comps))))))))))
+
+(: reflectance (-> IntersectionData Float))
+(define (reflectance comps)
+  (let* ([eyev (intersection-data-eyev comps)]
+         [normalv (intersection-data-normalv comps)]
+         [n1 (intersection-data-n1 comps)]
+         [n2 (intersection-data-n2 comps)]
+         [n (/ n1 n2)]
+         [cos-theta-i (dot* eyev normalv)]
+         [sin-theta-t**2 (* (sqr n) (- 1. (sqr cos-theta-i)))]
+         [r0 (sqr (/ (- n1 n2) (+ n1 n2)))]
+         [res (lambda ([x : Float]) (+ r0 (* (- 1. r0) (expt (- 1. x) 5))))])
+    (if (> n1 n2)
+        (if (> sin-theta-t**2 1.)
+            1.
+            (res ; cos-theta-t
+             (assert (sqrt (- 1. sin-theta-t**2)) flonum?)))
+        (res cos-theta-i))))

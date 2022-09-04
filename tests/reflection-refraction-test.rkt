@@ -204,7 +204,7 @@
                       (intersection 0.4899 b)
                       (intersection 0.9899 a)))
               (define comps (precomp (third xs) r xs))
-              (check-color= (shade-refraction w comps 5) (color 0. 0.99888 0.04722)))
+              (check-color= (shade-refraction w comps 5) (color 0. 0.99889 0.04722)))
    (test-case
     "shade-intersection with a transparent material"
     (define w
@@ -225,5 +225,48 @@
     (define comps (precomp (car xs) r xs))
     (check-color= (shade-intersection w comps 5) (color 0.93642 0.68642 0.68642)))))
 
+(define schlick-test
+  (test-suite
+   "Schlick's approximation"
+   (test-case
+    "The Schlick approximation under total internal reflection"
+    (define s (sphere "s" #:material (make-material #:transparency 1. #:refractive 1.5)))
+    (define r (ray (pt 0. 0. (/ (sqrt 2.) 2.)) (vec 0. 1. 0.)))
+    (define xs (list (intersection (- (/ (sqrt 2.) 2.)) s) (intersection (/ (sqrt 2.) 2.) s)))
+    (define comps (precomp (cadr xs) r xs))
+    (check-f= (reflectance comps) 1.0))
+   (test-case "The Schlick approximation with a perpendicular viewing angle"
+              (define s (sphere "s" #:material (make-material #:transparency 1. #:refractive 1.5)))
+              (define r (ray (pt 0. 0. 0.) (vec 0. 1. 0.)))
+              (define xs (list (intersection -1. s) (intersection 1. s)))
+              (define comps (precomp (cadr xs) r xs))
+              (check-f= (reflectance comps) 0.04))
+   (test-case "The Schlick approximation with small angle and n2 > n1"
+              (define s (sphere "s" #:material (make-material #:transparency 1. #:refractive 1.5)))
+              (define r (ray (pt 0. 0.99 -2.) (vec 0. 0. 1.)))
+              (define xs (list (intersection 1.8589 s)))
+              (define comps (precomp (car xs) r xs))
+              (check-f= (reflectance comps) 0.48873))
+   (test-case
+    "shade-intersection with a reflective, transparent material"
+    (define w
+      (make-world
+       (list
+        (sphere "outer concentric sphere"
+                #:material (make-material #:color (color 0.8 1.0 0.6) #:diffuse 0.7 #:specular 0.2))
+        (sphere "inner concentric sphere" #:transformation (scale 0.5 0.5 0.5))
+        (plane "floor"
+               #:transformation (translate 0. -1. 0.)
+               #:material (make-material #:reflective 0.5 #:transparency 0.5 #:refractive 1.5))
+        (sphere "ball"
+                #:transformation (translate 0. -3.5 -0.5)
+                #:material (make-material #:color (color 1. 0. 0.) #:ambient 0.5)))
+       (list (point-light "default light" (pt -10. 10. -10.) (color 1. 1. 1.)))))
+    (define r (ray (pt 0. 0. -3.) (vec 0. (- (/ (sqrt 2.) 2.)) (/ (sqrt 2.) 2.))))
+    (define xs (list (intersection (sqrt 2.) (hash-ref (world-objects w) "floor"))))
+    (define comps (precomp (car xs) r xs))
+    (check-color= (shade-intersection w comps 5) (color 0.93391 0.69643 0.69243)))))
+
 (run-tests reflection-test)
 (run-tests refraction-test)
+(run-tests schlick-test)
