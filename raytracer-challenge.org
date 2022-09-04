@@ -22,14 +22,17 @@ The codeblocks are mostly tangled such that there is one ~.rkt~ file correspondi
 #+BEGIN_SRC racket :noweb yes
 (require racket/future)
 
-(: render (->* (World Camera) (Exact-Positive-Integer Exact-Positive-Integer) Canvas))
-(define (render w c [n-rays 1] [n-threads 1])
+(: render
+   (->* (World Camera)
+        (Exact-Positive-Integer Exact-Positive-Integer Exact-Positive-Integer)
+        Canvas))
+(define (render w c [n-rays 1] [n-threads 1] [n-reflect-refract 5])
   (: render-pixel (-> Exact-Nonnegative-Integer Exact-Nonnegative-Integer Color))
   (define (render-pixel x y)
     (let* ([rays : (Listof Ray)
             (rays-to-pixel c x y n-rays)]
            [colors : (Listof Color)
-            (map (lambda ([ray : Ray]) (shade-ray w ray)) rays)]
+            (map (lambda ([ray : Ray]) (shade-ray w ray n-reflect-refract)) rays)]
            [average : Color
             (if (= n-rays 1)
                 (car colors)
