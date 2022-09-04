@@ -11,7 +11,8 @@
         ([id : String] [transformation : Matrix]
                        [material : Material]
                        [intersect : (-> Ray (Listof Float))]
-                       [normal-at : (-> Point Vector)])
+                       [normal-at : (-> Point Vector)]
+                       [inv-trans : Matrix])
   #:prefab
   #:type-name Shape)
 
@@ -37,7 +38,7 @@
   (: sphere-normal-at (-> Point Vector))
   (define (sphere-normal-at point)
     (assert (tuple- point (pt 0. 0. 0.)) vect?))
-  (_sphere id transformation material sphere-intersect sphere-normal-at))
+  (_sphere id transformation material sphere-intersect sphere-normal-at (inverse transformation)))
 
 (struct _plane shape () #:prefab #:type-name Plane)
 
@@ -51,7 +52,7 @@
   (: plane-normal-at (-> Point Vector))
   (define (plane-normal-at point)
     (vec 0. 1. 0.))
-  (_plane id transformation material plane-intersect plane-normal-at))
+  (_plane id transformation material plane-intersect plane-normal-at (inverse transformation)))
 
 (: set-transformation
    (-> (->* (String) (#:transformation Matrix #:material Material) Shape) Shape Matrix Shape))
@@ -65,14 +66,14 @@
 
 (: normal-at (-> Shape Point Vector))
 (define (normal-at obj world-point)
-  (let* ([trans : Matrix (shape-transformation obj)]
-         [obj-pt : Point (assert (mat-t* (inverse trans) world-point) point?)]
+  (let* ([inv-trans : Matrix (shape-inv-trans obj)]
+         [obj-pt : Point (assert (mat-t* inv-trans world-point) point?)]
          [obj-norm : Vector ((shape-normal-at obj) obj-pt)]
-         [world-norm : Tuple (mat-t* (transpose (inverse trans)) obj-norm)])
+         [world-norm : Tuple (mat-t* (transpose inv-trans) obj-norm)])
     (norm (vec (tuple-x world-norm) (tuple-y world-norm) (tuple-z world-norm)))))
 
 (: pattern-at (-> Pattern Shape Point Color))
 (define (pattern-at pattern object point)
-  (let* ([obj-pt (mat-t* (inverse (shape-transformation object)) point)]
-         [pattern-pt (assert (mat-t* (inverse (pattern-transformation pattern)) obj-pt) point?)])
+  (let* ([obj-pt (mat-t* (shape-inv-trans object) point)]
+         [pattern-pt (assert (mat-t* (pattern-inv-trans pattern) obj-pt) point?)])
     ((_pattern-color-at pattern) pattern-pt)))

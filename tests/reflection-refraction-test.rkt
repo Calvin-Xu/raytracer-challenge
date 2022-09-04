@@ -35,7 +35,9 @@
 
 (: test-pattern (->* () (Matrix) Pattern))
 (define (test-pattern [transformation id-mat-4])
-  (_pattern (lambda (point) (color (tuple-x point) (tuple-y point) (tuple-z point))) transformation))
+  (_pattern (lambda (point) (color (tuple-x point) (tuple-y point) (tuple-z point)))
+            transformation
+            (inverse transformation)))
 
 (define reflection-test
   (test-suite

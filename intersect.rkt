@@ -10,7 +10,7 @@
 (: intersect (-> Shape Ray (Listof Intersection)))
 (define (intersect shape ray)
   (let ([local-ray : Ray
-         (transform-ray ray (inverse (shape-transformation shape)))])
+                   (transform-ray ray (shape-inv-trans shape))])
     (map (lambda ([t : Float]) (intersection t shape)) ((shape-intersect shape) local-ray))))
 
 (: hit (-> (Listof Intersection) (U Intersection Null)))

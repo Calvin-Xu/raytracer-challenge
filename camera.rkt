@@ -15,7 +15,8 @@
                                              [fov : Float]
                                              [transform : Matrix]
                                              [focal-length : Float]
-                                             [aparture-size : Float])
+                                             [aparture-size : Float]
+                                             [inv-trans : Matrix])
   #:prefab
   #:type-name Camera)
 
@@ -29,7 +30,7 @@
                      #:transform [transform id-mat-4]
                      #:focal-length [focal-length 1.]
                      #:aparture-size [aparture-size 0.002])
-  (camera hsize vsize fov transform focal-length aparture-size))
+  (camera hsize vsize fov transform focal-length aparture-size (inverse transform)))
 
 (: camera-half-width-height (-> Camera (Pair Float Float)))
 (define (camera-half-width-height c)
@@ -55,11 +56,11 @@
          [half-width-height (camera-half-width-height c)]
          [world-x (- (car half-width-height) x-offset)]
          [world-y (- (cdr half-width-height) y-offset)]
-         [pixel (mat-t* (inverse (camera-transform c))
+         [pixel (mat-t* (camera-inv-trans c)
                         (pt world-x world-y (- (camera-focal-length c))))])
     (: make-ray (-> Point Ray))
     (define (make-ray origin)
-      (let* ([transformed-origin (assert (mat-t* (inverse (camera-transform c)) origin) point?)]
+      (let* ([transformed-origin (assert (mat-t* (camera-inv-trans c) origin) point?)]
              [direction (norm (assert (tuple- pixel transformed-origin) vect?))])
         (ray transformed-origin direction)))
     (for/fold ([rays : (Listof Ray) '()])

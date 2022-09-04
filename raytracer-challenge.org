@@ -2283,7 +2283,8 @@ This is beautiful...if it could infer types more.
                                              [fov : Float]
                                              [transform : Matrix]
                                              [focal-length : Float]
-                                             [aparture-size : Float])
+                                             [aparture-size : Float]
+                                             [inv-trans : Matrix])
   #:prefab
   #:type-name Camera)
 
@@ -2297,7 +2298,7 @@ This is beautiful...if it could infer types more.
                      #:transform [transform id-mat-4]
                      #:focal-length [focal-length 1.]
                      #:aparture-size [aparture-size 0.002])
-  (camera hsize vsize fov transform focal-length aparture-size))
+  (camera hsize vsize fov transform focal-length aparture-size (inverse transform)))
 
 (: camera-half-width-height (-> Camera (Pair Float Float)))
 (define (camera-half-width-height c)
@@ -2326,11 +2327,11 @@ This is beautiful...if it could infer types more.
          [half-width-height (camera-half-width-height c)]
          [world-x (- (car half-width-height) x-offset)]
          [world-y (- (cdr half-width-height) y-offset)]
-         [pixel (mat-t* (inverse (camera-transform c))
+         [pixel (mat-t* (camera-inv-trans c)
                         (pt world-x world-y (- (camera-focal-length c))))])
     (: make-ray (-> Point Ray))
     (define (make-ray origin)
-      (let* ([transformed-origin (assert (mat-t* (inverse (camera-transform c)) origin) point?)]
+      (let* ([transformed-origin (assert (mat-t* (camera-inv-trans c) origin) point?)]
              [direction (norm (assert (tuple- pixel transformed-origin) vect?))])
         (ray transformed-origin direction)))
     (for/fold ([rays : (Listof Ray) '()])
@@ -2766,7 +2767,8 @@ Edited the ~shade-intersection~ block under prior heading.
         ([id : String] [transformation : Matrix]
                        [material : Material]
                        [intersect : (-> Ray (Listof Float))]
-                       [normal-at : (-> Point Vector)])
+                       [normal-at : (-> Point Vector)]
+                       [inv-trans : Matrix])
   #:prefab
   #:type-name Shape)
 #+END_SRC
@@ -2795,7 +2797,7 @@ Edited the ~shade-intersection~ block under prior heading.
   (: sphere-normal-at (-> Point Vector))
   (define (sphere-normal-at point)
     (assert (tuple- point (pt 0. 0. 0.)) vect?))
-  (_sphere id transformation material sphere-intersect sphere-normal-at))
+  (_sphere id transformation material sphere-intersect sphere-normal-at (inverse transformation)))
 #+END_SRC
 
 #+NAME: set-transformation
@@ -2819,7 +2821,7 @@ Edited the ~shade-intersection~ block under prior heading.
 (: intersect (-> Shape Ray (Listof Intersection)))
 (define (intersect shape ray)
   (let ([local-ray : Ray
-         (transform-ray ray (inverse (shape-transformation shape)))])
+                   (transform-ray ray (shape-inv-trans shape))])
     (map (lambda ([t : Float]) (intersection t shape)) ((shape-intersect shape) local-ray))))
 #+END_SRC
 
@@ -2827,10 +2829,10 @@ Edited the ~shade-intersection~ block under prior heading.
 #+BEGIN_SRC racket :noweb yes
 (: normal-at (-> Shape Point Vector))
 (define (normal-at obj world-point)
-  (let* ([trans : Matrix (shape-transformation obj)]
-         [obj-pt : Point (assert (mat-t* (inverse trans) world-point) point?)]
+  (let* ([inv-trans : Matrix (shape-inv-trans obj)]
+         [obj-pt : Point (assert (mat-t* inv-trans world-point) point?)]
          [obj-norm : Vector ((shape-normal-at obj) obj-pt)]
-         [world-norm : Tuple (mat-t* (transpose (inverse trans)) obj-norm)])
+         [world-norm : Tuple (mat-t* (transpose inv-trans) obj-norm)])
     (norm (vec (tuple-x world-norm) (tuple-y world-norm) (tuple-z world-norm)))))
 #+END_SRC
 
@@ -2853,7 +2855,7 @@ Edited the ~shade-intersection~ block under prior heading.
   (: plane-normal-at (-> Point Vector))
   (define (plane-normal-at point)
     (vec 0. 1. 0.))
-  (_plane id transformation material plane-intersect plane-normal-at))
+  (_plane id transformation material plane-intersect plane-normal-at (inverse transformation)))
 #+END_SRC
 
 ** DONE Putting It Together
@@ -2970,13 +2972,13 @@ Edited the ~shade-intersection~ block under prior heading.
 :END:
 #+NAME: pattern-base
 #+BEGIN_SRC racket :noweb yes
-(struct _pattern ([color-at : (-> Point Color)] [transformation : Matrix])
+(struct _pattern ([color-at : (-> Point Color)] [transformation : Matrix] [inv-trans : Matrix])
   #:prefab
   #:type-name Pattern)
 
-(: pattern
-   (->* ((U 'stripe 'gradient 'ring 'checker 'plain) (Listof Color))
-        (#:transformation Matrix) Pattern))
+(:
+ pattern
+ (->* ((U 'stripe 'gradient 'ring 'checker 'plain) (Listof Color)) (#:transformation Matrix) Pattern))
 (define (pattern type
           colors
           #:transformation [transformation id-mat-4])
@@ -2985,20 +2987,22 @@ Edited the ~shade-intersection~ block under prior heading.
     [(eq? type 'gradient) (gradient (cast colors (List Color Color)) transformation)]
     [(eq? type 'ring) (ring (cast colors (List Color Color)) transformation)]
     [(eq? type 'checker) (checker (cast colors (List Color Color)) transformation)]
-    [(eq? type 'plain) (_pattern (lambda (point) (car colors)) id-mat-4)]
+    [(eq? type 'plain) (_pattern (lambda (point) (car colors)) id-mat-4 id-mat-4)]
     [else (error "Illegal operation: no pattern type: " type)]))
 
 (define pattern-color-at _pattern-color-at)
 
 (define pattern-transformation _pattern-transformation)
+
+(define pattern-inv-trans _pattern-inv-trans)
 #+END_SRC
 
 #+NAME: pattern-at
 #+BEGIN_SRC racket :noweb yes
 (: pattern-at (-> Pattern Shape Point Color))
 (define (pattern-at pattern object point)
-  (let* ([obj-pt (mat-t* (inverse (shape-transformation object)) point)]
-         [pattern-pt (assert (mat-t* (inverse (pattern-transformation pattern)) obj-pt) point?)])
+  (let* ([obj-pt (mat-t* (shape-inv-trans object) point)]
+         [pattern-pt (assert (mat-t* (pattern-inv-trans pattern) obj-pt) point?)])
     ((_pattern-color-at pattern) pattern-pt)))
 #+END_SRC
 
@@ -3007,7 +3011,7 @@ Edited the ~shade-intersection~ block under prior heading.
 (: stripe (-> (List Color Color) Matrix Pattern))
 (define (stripe colors transformation)
   (_pattern (lambda (point)
-              (if (= 0 (remainder (exact-floor (tuple-x point)) 2)) (first colors) (second colors))) transformation))
+              (if (= 0 (remainder (exact-floor (tuple-x point)) 2)) (first colors) (second colors))) transformation (inverse transformation)))
 #+END_SRC
 
 #+BEGIN_SRC racket :noweb yes
@@ -3104,7 +3108,8 @@ Edited the ~shade-intersection~ block under prior heading.
                     [frac : Float
                           (- (tuple-x point) (floor (tuple-x point)))])
                 (color+ (first colors) (color* delta frac))))
-            transformation))
+            transformation
+            (inverse transformation)))
 #+END_SRC
 
 ** DONE Making a Ring Pattern
@@ -3121,7 +3126,8 @@ Edited the ~shade-intersection~ block under prior heading.
      (if (= 0 (remainder (exact-floor (sqrt (+ (sqr (tuple-x point)) (sqr (tuple-z point))))) 2))
          (first colors)
          (second colors)))
-   transformation))
+   transformation
+   (inverse transformation)))
 #+END_SRC
 
 ** DONE Making a 3D Checker Pattern
@@ -3141,7 +3147,8 @@ Edited the ~shade-intersection~ block under prior heading.
                                 2))
                   (first colors)
                   (second colors)))
-            transformation))
+            transformation
+            (inverse transformation)))
 #+END_SRC
 
 ** DONE Putting It Together
@@ -3177,7 +3184,9 @@ Edited the ~shade-intersection~ block under prior heading.
 
 (: test-pattern (->* () (Matrix) Pattern))
 (define (test-pattern [transformation id-mat-4])
-  (_pattern (lambda (point) (color (tuple-x point) (tuple-y point) (tuple-z point))) transformation))
+  (_pattern (lambda (point) (color (tuple-x point) (tuple-y point) (tuple-z point)))
+            transformation
+            (inverse transformation)))
 
 (define patterns-test
   (test-suite
@@ -3643,7 +3652,9 @@ Edited the ~shade-intersection~ block under prior heading.
 
 (: test-pattern (->* () (Matrix) Pattern))
 (define (test-pattern [transformation id-mat-4])
-  (_pattern (lambda (point) (color (tuple-x point) (tuple-y point) (tuple-z point))) transformation))
+  (_pattern (lambda (point) (color (tuple-x point) (tuple-y point) (tuple-z point)))
+            transformation
+            (inverse transformation)))
 
 (define reflection-test
   (test-suite
