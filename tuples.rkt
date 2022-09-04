@@ -32,8 +32,6 @@
 
 (: f= (-> Float Float Boolean))
 (define (f= a b)
-  (: EPSILON Float)
-  (define EPSILON 0.00001)
   (< (abs (- a b)) EPSILON))
 
 (: tuple+ (-> Tuple Tuple Tuple))

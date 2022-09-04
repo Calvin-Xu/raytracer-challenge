@@ -76,8 +76,8 @@
                (define s (sphere "s" #:transformation (translate 0. 0. 1.)))
                (define i (intersection 5. s))
                (define comps (precomp i r))
-               (check-true (< (tuple-z (intersection-data-over-pt comps)) (- (/ 0.00001 2))))
+               (check-true (< (tuple-z (intersection-data-point+ comps)) (- (/ 0.00001 2))))
                (check-true (> (tuple-z (intersection-data-point comps))
-                              (tuple-z (intersection-data-over-pt comps))))))))
+                              (tuple-z (intersection-data-point+ comps))))))))
 
 (run-tests shadow-test)

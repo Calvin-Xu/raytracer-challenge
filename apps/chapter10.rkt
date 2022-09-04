@@ -67,4 +67,4 @@
                #:transform (view-transformation (pt 0. 1.5 -5.) (pt 0. 1. 0.) (vec 0. 1. 0.))
                #:aparture-size 0.001))
 
-(save-canvas (render world camera 2 16) "test.ppm")
+(save-canvas (render world camera 4 10) "test.ppm")
