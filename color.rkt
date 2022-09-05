@@ -4,6 +4,10 @@
 
 (struct color ([r : Float] [g : Float] [b : Float]) #:prefab #:type-name Color)
 
+(: color-255 (-> Exact-Nonnegative-Integer Exact-Nonnegative-Integer Exact-Nonnegative-Integer Color))
+(define (color-255 r g b)
+  (color (fl/ (exact->inexact r) 255.) (fl/ (exact->inexact g) 255.) (fl/ (exact->inexact b) 255.)))
+
 (: color->string (->* (Color) (Exact-Nonnegative-Integer) String))
 (define (color->string color [max-color-val 255])
   (: scale (-> Float Integer))
