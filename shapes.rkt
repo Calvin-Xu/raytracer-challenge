@@ -6,6 +6,7 @@
 (require "ray.rkt")
 (require "color.rkt")
 (require "patterns.rkt")
+(require typed/racket/flonum)
 
 (struct shape
         ([id : String] [transformation : Matrix]
@@ -24,14 +25,12 @@
   (define (sphere-intersect ray)
     (let* ([center-to-ray : Vector (assert (tuple- (ray-origin ray) (pt 0. 0. 0.)) vect?)]
            [a : Float (dot* (ray-direction ray) (ray-direction ray))]
-           [b : Float (* 2 (dot* (ray-direction ray) center-to-ray))]
-           [c : Float (- (dot* center-to-ray center-to-ray) 1)]
-           [discriminant : Float (- (sqr b) (* 4. a c))]
+           [b : Float (fl* 2. (dot* (ray-direction ray) center-to-ray))]
+           [c : Float (fl- (dot* center-to-ray center-to-ray) 1.)]
+           [discriminant : Float (fl- (sqr b) (* 4. a c))]
            [solution : (-> (U '+ '-) Float)
                      (lambda (sign)
-                       (cast
-                        (/ ((if (eq? sign '-) - +) (- b) (sqrt discriminant)) (* 2 a))
-                        Float))])
+                        (/ ((if (eq? sign '-) fl- fl+) (- b) (flsqrt discriminant)) (* 2 a)))])
       (if (< discriminant 0.)
           '()
           (list (solution '-) (solution '+)))))
@@ -46,9 +45,9 @@
 (define (plane id #:transformation [transformation id-mat-4] #:material [material (make-material)])
   (: plane-intersect (-> Ray (Listof Float)))
   (define (plane-intersect ray)
-    (if (< (abs (tuple-y (ray-direction ray))) EPSILON)
+    (if (fl< (abs (tuple-y (ray-direction ray))) EPSILON)
         '()
-        (list (/ (- (tuple-y (ray-origin ray))) (tuple-y (ray-direction ray))))))
+        (list (fl/ (- (tuple-y (ray-origin ray))) (tuple-y (ray-direction ray))))))
   (: plane-normal-at (-> Point Vector))
   (define (plane-normal-at point)
     (vec 0. 1. 0.))

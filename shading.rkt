@@ -9,6 +9,7 @@
 (require "shapes.rkt")
 (require "light.rkt")
 (require "world.rkt")
+(require typed/racket/flonum)
 
 (: phong (->* (Material Shape Light Point Vector Vector) (Boolean Point) Color))
 (define (phong material object light point eyev normalv [in-shadow #f] [point- point])
@@ -72,20 +73,25 @@
 (define (precomp intersection ray [xs (list intersection)])
   (: helper (-> (Listof Intersection) (U (Listof Shape) Null) Float Float (Pairof Float Float)))
   (define (helper intersections containers n1 n2)
-    (let* ([i (car intersections)]
-           [obj (intersection-obj i)]
-           [new-containers
-            (if (member obj containers) (remove obj containers) (append containers (list obj)))]
-           [n1
-            (if (equal? i intersection)
-                (if (null? containers) 1.0 (material-refractive (shape-material (last containers))))
-                n1)]
-           [n2 (if (equal? i intersection)
-                   (if (null? new-containers)
-                       1.0
-                       (material-refractive (shape-material (last new-containers))))
-                   n2)])
-      (if (or (= 0. n1) (= 0. n2)) (helper (cdr intersections) new-containers n1 n2) (cons n1 n2))))
+    (if (null? intersections)
+        (error "Illegal operation: precomp given empty list of intersections")
+        (let* ([i (car intersections)]
+               [obj (intersection-obj i)]
+               [new-containers
+                (if (member obj containers) (remove obj containers) (append containers (list obj)))]
+               [n1 (if (equal? i intersection)
+                       (if (null? containers)
+                           1.0
+                           (material-refractive (shape-material (last containers))))
+                       n1)]
+               [n2 (if (equal? i intersection)
+                       (if (null? new-containers)
+                           1.0
+                           (material-refractive (shape-material (last new-containers))))
+                       n2)])
+          (if (or (fl= 0. n1) (fl= 0. n2))
+              (helper (cdr intersections) new-containers n1 n2)
+              (cons n1 n2)))))
   (let* ([t (intersection-t intersection)]
          [object (intersection-obj intersection)]
          [point (pos ray t)]
@@ -150,7 +156,7 @@
 (: shade-reflection (-> World IntersectionData Exact-Nonnegative-Integer Color))
 (define (shade-reflection world comps remaining)
   (let ([reflective (material-reflective (shape-material (intersection-data-object comps)))])
-    (if (or (= 0 reflective) (= remaining 0))
+    (if (or (fl= 0. reflective) (= remaining 0))
         black
         (let* ([reflect-ray (ray (intersection-data-point+ comps)
                                  (intersection-data-reflectv comps))]
@@ -160,7 +166,7 @@
 (: shade-refraction (-> World IntersectionData Exact-Nonnegative-Integer Color))
 (define (shade-refraction world comps remaining)
   (let ([transparency (material-transparency (shape-material (intersection-data-object comps)))])
-    (if (or (= 0 transparency) (= remaining 0))
+    (if (or (fl= 0. transparency) (= remaining 0))
         black
         ;; total internal reflection
         (let* ([normalv (intersection-data-normalv comps)]
@@ -170,7 +176,7 @@
                [sin-theta-t-**2 (* (sqr n-ratio) (- 1. (sqr cos-theta-i)))])
           (if (> sin-theta-t-**2 1.)
               black
-              (let* ([cos-theta-t (assert (sqrt (- 1. sin-theta-t-**2)) flonum?)]
+              (let* ([cos-theta-t (flsqrt (- 1. sin-theta-t-**2))]
                      [direction
                       (assert (tuple- (tuple* normalv (- (* n-ratio cos-theta-i) cos-theta-t))
                                       (tuple* eyev n-ratio))
@@ -195,5 +201,5 @@
         (if (> sin-theta-t**2 1.)
             1.
             (res ; cos-theta-t
-             (assert (sqrt (- 1. sin-theta-t**2)) flonum?)))
+             (flsqrt (- 1. sin-theta-t**2))))
         (res cos-theta-i))))
