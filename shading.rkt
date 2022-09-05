@@ -24,20 +24,20 @@
           (norm (assert (tuple- (light-position light) point) vect?))]
          [*light-normal : Float (dot* lightv normalv)]
          [diffuse : Color
-          (if (< *light-normal 0.)
+          (if (fl< *light-normal 0.)
               black
               (color* blended (* (material-diffuse material) *light-normal)))]
          [specular : Color
-          (if (< *light-normal 0.)
+          (if (fl< *light-normal 0.)
               black
               (let* ([reflectv : Vector
                       (reflect (assert (-tuple lightv) vect?) normalv)]
                      [*reflect-eye : Float (dot* reflectv eyev)])
-                (if (< *reflect-eye 0.)
+                (if (fl< *reflect-eye 0.)
                     black
                     (color* (light-intensity light)
-                            (* (material-specular material)
-                               (cast (expt *reflect-eye (material-shininess material)) Float))))))])
+                            (fl* (material-specular material)
+                               (flexpt *reflect-eye (material-shininess material)))))))])
     (if in-shadow
         ambient
         (colors+ ambient diffuse specular))))

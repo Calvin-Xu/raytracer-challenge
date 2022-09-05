@@ -7,6 +7,7 @@
 (require "ray.rkt")
 (require "shading.rkt")
 (require "world.rkt")
+(require typed/racket/flonum)
 
 (define randgen (current-pseudo-random-generator))
 
@@ -34,11 +35,11 @@
 
 (: camera-half-width-height (-> Camera (Pair Float Float)))
 (define (camera-half-width-height c)
-  (let* ([half-view : Float (* (camera-focal-length c) (tan (/ (camera-fov c) 2.)))]
-         [aspect : Float (/ (exact->inexact (camera-hsize c)) (exact->inexact (camera-vsize c)))]
-         [half-width : Float (if (>= aspect 1.) half-view (* half-view aspect))]
-         [half-height : Float (if (>= aspect 1.) (/ half-view aspect) half-view)])
-    (cons (cast half-width Float) (cast half-height Float))))
+  (let* ([half-view : Float (fl* (camera-focal-length c) (tan (fl/ (camera-fov c) 2.)))]
+         [aspect : Float (fl/ (exact->inexact (camera-hsize c)) (exact->inexact (camera-vsize c)))]
+         [half-width : Float (if (fl>= aspect 1.) half-view (fl* half-view aspect))]
+         [half-height : Float (if (fl>= aspect 1.) (fl/ half-view aspect) half-view)])
+    (cons half-width half-height)))
 
 (: camera-pixel-size (-> Camera Float))
 (define (camera-pixel-size c)

@@ -29,14 +29,14 @@
       (vector-ref (canvas-pixels canvas) (+ (* y (canvas-width canvas)) x))))
 
 (: save-canvas (->* (Canvas String) (Exact-Nonnegative-Integer) Void))
-(define (save-canvas canvas filename [max_color_val 255])
+(define (save-canvas canvas filename [max-color-val 255])
   (define header
     (string-append "P3\n"
                    (number->string (canvas-width canvas))
                    " "
                    (number->string (canvas-height canvas))
                    "\n"
-                   (number->string max_color_val)
+                   (number->string max-color-val)
                    "\n"))
   (define PIXELS_PER_ROW 6)
   (: add-newline (-> String String))
@@ -46,7 +46,7 @@
     (display header out)
     (for/fold ([counter : Integer 1])
               ([pixel : Color (in-vector (canvas-pixels canvas))])
-      (let ([serialized : String (color->string pixel max_color_val)])
+      (let ([serialized : String (color->string pixel max-color-val)])
         (display (if (= counter PIXELS_PER_ROW) (add-newline serialized) serialized) out))
       (if (= counter PIXELS_PER_ROW) 1 (add1 counter)))
     (close-output-port out)))

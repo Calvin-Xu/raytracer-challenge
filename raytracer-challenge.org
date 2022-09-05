@@ -446,10 +446,10 @@ Position: '#s((point tuple 4) 10.11370849898476 0.3137084989847604 0.0 1.0)
 (struct color ([r : Float] [g : Float] [b : Float]) #:prefab #:type-name Color)
 
 (: color->string (->* (Color) (Exact-Nonnegative-Integer) String))
-(define (color->string color [max_color_val 255])
+(define (color->string color [max-color-val 255])
   (: scale (-> Float Integer))
   (define (scale frac)
-    (exact-round (cast (* (max 0 (min 1.0 frac)) max_color_val) Float)))
+    (exact-round (fl* (flmax 0. (flmin 1.0 frac)) (exact->inexact max-color-val))))
   (string-append (number->string (scale (color-r color)))
                  " "
                  (number->string (scale (color-g color)))
@@ -641,14 +641,14 @@ New canvas should be an immutable 2D vector that is created by the drawing code 
       (vector-ref (canvas-pixels canvas) (+ (* y (canvas-width canvas)) x))))
 
 (: save-canvas (->* (Canvas String) (Exact-Nonnegative-Integer) Void))
-(define (save-canvas canvas filename [max_color_val 255])
+(define (save-canvas canvas filename [max-color-val 255])
   (define header
     (string-append "P3\n"
                    (number->string (canvas-width canvas))
                    " "
                    (number->string (canvas-height canvas))
                    "\n"
-                   (number->string max_color_val)
+                   (number->string max-color-val)
                    "\n"))
   (define PIXELS_PER_ROW 6)
   (: add-newline (-> String String))
@@ -658,7 +658,7 @@ New canvas should be an immutable 2D vector that is created by the drawing code 
     (display header out)
     (for/fold ([counter : Integer 1])
               ([pixel : Color (in-vector (canvas-pixels canvas))])
-      (let ([serialized : String (color->string pixel max_color_val)])
+      (let ([serialized : String (color->string pixel max-color-val)])
         (display (if (= counter PIXELS_PER_ROW) (add-newline serialized) serialized) out))
       (if (= counter PIXELS_PER_ROW) 1 (add1 counter)))
     (close-output-port out)))
@@ -1401,11 +1401,14 @@ We need a matrix of cofactors, so we'll implement ~cofactor~ even though we didn
 (define twelve (pt 0. 1. 0.))
 
 (for ([i (in-range 1 13)])
-  (let ([hr (transform-pt twelve (rotate 'z (cast (/ (* i pi) 6) Float)) (scale 10. 10. 10.) (translate 12. 12. 0.))])
-  (set-pixel! c
-              (assert (exact-round (tuple-x hr)) nonnegative-integer?)
-              (assert (exact-round (tuple-y hr)) nonnegative-integer?)
-              (color 1. 0. 0.))))
+  (let ([hr (transform-pt twelve
+                          (rotate 'z (fl/ (* i pi) 6.))
+                          (scale 10. 10. 10.)
+                          (translate 12. 12. 0.))])
+    (set-pixel! c
+                (assert (exact-round (tuple-x hr)) nonnegative-integer?)
+                (assert (exact-round (tuple-y hr)) nonnegative-integer?)
+                (color 1. 0. 0.))))
 
 (save-canvas c "test.ppm")
 #+END_SRC
@@ -1938,7 +1941,7 @@ Currently only handles spheres as do everything else.
                     black
                     (color* (light-intensity light)
                             (* (material-specular material)
-                               (cast (expt *reflect-eye (material-shininess material)) Float))))))])
+                               (flexpt *reflect-eye (material-shininess material)))))))])
     (if in-shadow
         ambient
         (colors+ ambient diffuse specular))))
@@ -2305,11 +2308,11 @@ This is beautiful...if it could infer types more.
 
 (: camera-half-width-height (-> Camera (Pair Float Float)))
 (define (camera-half-width-height c)
-  (let* ([half-view : Float (* (camera-focal-length c) (tan (/ (camera-fov c) 2.)))]
-         [aspect : Float (/ (exact->inexact (camera-hsize c)) (exact->inexact (camera-vsize c)))]
-         [half-width : Float (if (>= aspect 1.) half-view (* half-view aspect))]
-         [half-height : Float (if (>= aspect 1.) (/ half-view aspect) half-view)])
-    (cons (cast half-width Float) (cast half-height Float))))
+  (let* ([half-view : Float (fl* (camera-focal-length c) (tan (fl/ (camera-fov c) 2.)))]
+         [aspect : Float (fl/ (exact->inexact (camera-hsize c)) (exact->inexact (camera-vsize c)))]
+         [half-width : Float (if (fl>= aspect 1.) half-view (fl* half-view aspect))]
+         [half-height : Float (if (fl>= aspect 1.) (fl/ half-view aspect) half-view)])
+    (cons half-width half-height)))
 
 (: camera-pixel-size (-> Camera Float))
 (define (camera-pixel-size c)
@@ -3048,20 +3051,20 @@ Edited the ~shade-intersection~ block under prior heading.
           (norm (assert (tuple- (light-position light) point) vect?))]
          [*light-normal : Float (dot* lightv normalv)]
          [diffuse : Color
-          (if (< *light-normal 0.)
+          (if (fl< *light-normal 0.)
               black
               (color* blended (* (material-diffuse material) *light-normal)))]
          [specular : Color
-          (if (< *light-normal 0.)
+          (if (fl< *light-normal 0.)
               black
               (let* ([reflectv : Vector
                       (reflect (assert (-tuple lightv) vect?) normalv)]
                      [*reflect-eye : Float (dot* reflectv eyev)])
-                (if (< *reflect-eye 0.)
+                (if (fl< *reflect-eye 0.)
                     black
                     (color* (light-intensity light)
-                            (* (material-specular material)
-                               (cast (expt *reflect-eye (material-shininess material)) Float))))))])
+                            (fl* (material-specular material)
+                               (flexpt *reflect-eye (material-shininess material)))))))])
     (if in-shadow
         ambient
         (colors+ ambient diffuse specular))))
@@ -4024,6 +4027,7 @@ Implementing [[https://en.wikipedia.org/wiki/Schlick%27s_approximation][Schlick'
 #+BEGIN_SRC racket :noweb yes :tangle color.rkt
 #lang typed/racket
 (provide (except-out (all-defined-out) color-op scalar-helper))
+(require typed/racket/flonum)
 
 <<color-base>>
 
@@ -4157,6 +4161,7 @@ Implementing [[https://en.wikipedia.org/wiki/Schlick%27s_approximation][Schlick'
 (require "ray.rkt")
 (require "shading.rkt")
 (require "world.rkt")
+(require typed/racket/flonum)
 
 (define randgen (current-pseudo-random-generator))
 

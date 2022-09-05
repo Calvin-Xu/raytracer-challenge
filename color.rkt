@@ -1,13 +1,14 @@
 #lang typed/racket
 (provide (except-out (all-defined-out) color-op scalar-helper))
+(require typed/racket/flonum)
 
 (struct color ([r : Float] [g : Float] [b : Float]) #:prefab #:type-name Color)
 
 (: color->string (->* (Color) (Exact-Nonnegative-Integer) String))
-(define (color->string color [max_color_val 255])
+(define (color->string color [max-color-val 255])
   (: scale (-> Float Integer))
   (define (scale frac)
-    (exact-round (cast (* (max 0 (min 1.0 frac)) max_color_val) Float)))
+    (exact-round (fl* (flmax 0. (flmin 1.0 frac)) (exact->inexact max-color-val))))
   (string-append (number->string (scale (color-r color)))
                  " "
                  (number->string (scale (color-g color)))
